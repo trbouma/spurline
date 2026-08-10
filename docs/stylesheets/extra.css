@@ -1,0 +1,123 @@
+:root {
+  --spurline-ink: #07112e;
+  --spurline-blue: #1554bd;
+  --spurline-amber: #d88b1e;
+  --spurline-paper: #fffaf0;
+  --spurline-muted: #5f6573;
+}
+
+.wy-nav-content {
+  max-width: 1100px;
+}
+
+.hero {
+  align-items: center;
+  display: grid;
+  gap: 3rem;
+  grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+  margin: 2.5rem 0 3rem;
+}
+
+.hero-mark {
+  align-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, var(--spurline-paper) 100%);
+  border: 1px solid rgba(7, 17, 46, 0.08);
+  border-radius: 24px;
+  display: flex;
+  justify-content: center;
+  min-height: 320px;
+  padding: 2.5rem;
+}
+
+.hero-mark img {
+  display: block;
+  max-width: 260px;
+  width: 100%;
+}
+
+.hero-copy h1 {
+  color: var(--spurline-ink);
+  font-size: clamp(3rem, 8vw, 5.8rem);
+  line-height: 0.95;
+  margin: 0 0 1rem;
+}
+
+.eyebrow {
+  color: var(--spurline-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.8rem;
+  text-transform: uppercase;
+}
+
+.lede {
+  color: var(--spurline-ink);
+  font-size: 1.55rem;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+
+.hero-copy p {
+  max-width: 680px;
+}
+
+.statement {
+  border-bottom: 1px solid rgba(7, 17, 46, 0.12);
+  border-top: 1px solid rgba(7, 17, 46, 0.12);
+  color: var(--spurline-ink);
+  display: grid;
+  gap: 0.35rem;
+  margin: 2rem 0 2.5rem;
+  padding: 1.6rem 0;
+}
+
+.statement p {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.statement p:last-child {
+  color: var(--spurline-amber);
+}
+
+.grid {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 2rem 0 3rem;
+}
+
+.grid article {
+  border-left: 4px solid var(--spurline-blue);
+  padding-left: 1rem;
+}
+
+.grid h2 {
+  color: var(--spurline-ink);
+  margin-top: 0;
+}
+
+.grid p,
+.hero-copy p:not(.eyebrow):not(.lede) {
+  color: var(--spurline-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+@media (max-width: 800px) {
+  .hero,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    gap: 1.5rem;
+  }
+
+  .hero-mark {
+    min-height: 240px;
+  }
+}

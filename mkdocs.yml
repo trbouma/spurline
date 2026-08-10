@@ -1,0 +1,10 @@
+site_name: Spurline
+site_description: A local relay for the global Nostr network.
+theme:
+  name: mkdocs
+  color_mode: auto
+  user_color_mode_toggle: true
+nav:
+  - Home: index.md
+extra_css:
+  - stylesheets/extra.css

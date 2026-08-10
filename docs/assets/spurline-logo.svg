@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Spurline logo</title>
+  <desc id="desc">An abstract S-shaped rail spur mark in midnight blue, bright blue, and signal amber.</desc>
+  <defs>
+    <linearGradient id="bodyGradient" x1="92" y1="70" x2="374" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#162a63"/>
+      <stop offset="1" stop-color="#07112e"/>
+    </linearGradient>
+    <linearGradient id="mainlineGradient" x1="218" y1="108" x2="404" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1c65d8"/>
+      <stop offset="1" stop-color="#0f3c94"/>
+    </linearGradient>
+    <linearGradient id="signalGradient" x1="296" y1="350" x2="360" y2="424" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f0a92d"/>
+      <stop offset="1" stop-color="#c47a16"/>
+    </linearGradient>
+  </defs>
+  <path
+    fill="url(#bodyGradient)"
+    d="M96 132c0-42 34-76 76-76h110c14 0 26 12 26 26v30c0 14-12 26-26 26H172c-22 0-40 18-40 40v54c0 22 18 40 40 40h172c42 0 76 34 76 76v82c0 14-12 26-26 26h-36c-14 0-26-12-26-26v-72c0-12-10-22-22-22H172c-42 0-76-34-76-76z"
+  />
+  <path
+    fill="url(#bodyGradient)"
+    d="M96 354c0-14 12-26 26-26h110c14 0 26 12 26 26v48c0 14-12 26-26 26H122c-14 0-26-12-26-26z"
+  />
+  <path
+    fill="url(#mainlineGradient)"
+    d="M210 142c0-14 12-26 26-26h128v-34c0-14 12-26 26-26h36c14 0 26 12 26 26v126c0 14-12 26-26 26H236c-14 0-26-12-26-26z"
+  />
+  <rect x="292" y="342" width="68" height="86" rx="16" fill="url(#signalGradient)" />
+</svg>
