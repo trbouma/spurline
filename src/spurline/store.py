@@ -44,6 +44,8 @@ class EventStore:
                     json.dumps(event.to_dict(), ensure_ascii=False, separators=(",", ":")),
                 ),
             )
+            if event.kind == 5:
+                self._record_deletions(event)
             self.connection.commit()
             return cursor.rowcount > 0
 
@@ -52,8 +54,12 @@ class EventStore:
         with self.lock:
             rows = self.connection.execute(
                 """
-                SELECT raw_json
+                SELECT events.raw_json
                 FROM events
+                LEFT JOIN deletions
+                  ON deletions.event_id = events.id
+                 AND deletions.deleted_by = events.pubkey
+                WHERE deletions.event_id IS NULL
                 ORDER BY created_at DESC, id DESC
                 """
             ).fetchall()
@@ -84,6 +90,37 @@ class EventStore:
                 CREATE INDEX IF NOT EXISTS idx_events_created_at ON events (created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_events_pubkey ON events (pubkey);
                 CREATE INDEX IF NOT EXISTS idx_events_kind ON events (kind);
+
+                CREATE TABLE IF NOT EXISTS deletions (
+                  event_id TEXT NOT NULL,
+                  deleted_by TEXT NOT NULL,
+                  deletion_event_id TEXT NOT NULL,
+                  deleted_at INTEGER NOT NULL,
+                  PRIMARY KEY (event_id, deleted_by)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_deletions_deleted_by
+                  ON deletions (deleted_by);
                 """
             )
             self.connection.commit()
+
+    def _record_deletions(self, event: StoredEvent) -> None:
+        for tag in event.tags:
+            if len(tag) < 2 or tag[0] != "e":
+                continue
+            target_id = tag[1]
+            if not _is_lower_hex(target_id, 64) or target_id == event.id:
+                continue
+            self.connection.execute(
+                """
+                INSERT OR REPLACE INTO deletions
+                  (event_id, deleted_by, deletion_event_id, deleted_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (target_id, event.pubkey, event.id, event.created_at),
+            )
+
+
+def _is_lower_hex(value: str, length: int) -> bool:
+    return len(value) == length and all(char in "0123456789abcdef" for char in value)
