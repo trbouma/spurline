@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 from pathlib import Path
 
-from .relay import Relay
+import uvicorn
+
+from .config import Settings
+from .main import create_app
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,20 +27,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def run(args: argparse.Namespace) -> None:
-    relay = Relay(
-        database_path=args.database,
-        host=args.host,
-        port=args.port,
-        verify_signatures=not args.no_verify_signatures,
-    )
-    await relay.serve_forever()
-
-
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    try:
-        asyncio.run(run(args))
-    except KeyboardInterrupt:
-        pass
+    settings = Settings(
+        host=args.host,
+        port=args.port,
+        database_path=args.database,
+        verify_signatures=not args.no_verify_signatures,
+    )
+    uvicorn.run(create_app(settings), host=settings.host, port=settings.port)

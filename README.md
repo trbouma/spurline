@@ -13,21 +13,26 @@ implements the core NIP-01 relay flow:
 ## Install
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
+poetry install --with dev
 ```
 
 ## Run
 
 ```bash
-spurline --host 127.0.0.1 --port 8080 --database ./data/spurline.sqlite3
+poetry run spurline --host 127.0.0.1 --port 8080 --database ./data/spurline.sqlite3
+```
+
+The relay runs as a FastAPI application under Uvicorn. For direct ASGI
+development, use:
+
+```bash
+poetry run uvicorn spurline.main:create_app --factory --host 127.0.0.1 --port 8080 --reload
 ```
 
 For test fixtures or private local experiments, signature verification can be disabled:
 
 ```bash
-spurline --no-verify-signatures
+poetry run spurline --no-verify-signatures
 ```
 
 Then connect a Nostr client to:
@@ -36,15 +41,23 @@ Then connect a Nostr client to:
 ws://127.0.0.1:8080
 ```
 
+HTTP probes are available on the same port:
+
+```text
+http://127.0.0.1:8080/health
+http://127.0.0.1:8080/info
+http://127.0.0.1:8080/.well-known/nostr.json
+```
+
 ## Test
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 ## Site
 
 ```bash
-python -m pip install -e ".[docs]"
-mkdocs serve
+poetry install --with docs
+poetry run mkdocs serve
 ```
