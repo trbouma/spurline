@@ -19,6 +19,8 @@ httpx = ">=0.28.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = ">=1.6.0"
+mkdocs-material = ">=9.5.0"
+pymdown-extensions = ">=10.0.0"
 
 [tool.poetry.scripts]
 spurline = "spurline.cli:main"

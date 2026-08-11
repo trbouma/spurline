@@ -1,123 +1,124 @@
 :root {
+  --md-primary-fg-color: #102456;
+  --md-primary-fg-color--light: #1f5ec9;
+  --md-primary-fg-color--dark: #07112e;
+  --md-accent-fg-color: #d88b1e;
+  --spurline-paper: #fff8ec;
   --spurline-ink: #07112e;
   --spurline-blue: #1554bd;
   --spurline-amber: #d88b1e;
-  --spurline-paper: #fffaf0;
-  --spurline-muted: #5f6573;
 }
 
-.wy-nav-content {
-  max-width: 1100px;
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #163a78;
+  --md-accent-fg-color: #f0a92d;
+  --spurline-paper: #111827;
+  --spurline-ink: #eef4ff;
 }
 
-.hero {
+.md-header__option .md-header__button:not([hidden]) {
+  display: inline-flex;
+  width: auto;
   align-items: center;
-  display: grid;
-  gap: 3rem;
-  grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
-  margin: 2.5rem 0 3rem;
-}
-
-.hero-mark {
-  align-items: center;
-  background: linear-gradient(180deg, #ffffff 0%, var(--spurline-paper) 100%);
-  border: 1px solid rgba(7, 17, 46, 0.08);
-  border-radius: 24px;
-  display: flex;
-  justify-content: center;
-  min-height: 320px;
-  padding: 2.5rem;
-}
-
-.hero-mark img {
-  display: block;
-  max-width: 260px;
-  width: 100%;
-}
-
-.hero-copy h1 {
-  color: var(--spurline-ink);
-  font-size: clamp(3rem, 8vw, 5.8rem);
-  line-height: 0.95;
-  margin: 0 0 1rem;
-}
-
-.eyebrow {
-  color: var(--spurline-blue);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  margin: 0 0 0.8rem;
-  text-transform: uppercase;
-}
-
-.lede {
-  color: var(--spurline-ink);
-  font-size: 1.55rem;
-  line-height: 1.3;
-  margin-bottom: 1rem;
-}
-
-.hero-copy p {
-  max-width: 680px;
-}
-
-.statement {
-  border-bottom: 1px solid rgba(7, 17, 46, 0.12);
-  border-top: 1px solid rgba(7, 17, 46, 0.12);
-  color: var(--spurline-ink);
-  display: grid;
   gap: 0.35rem;
-  margin: 2rem 0 2.5rem;
-  padding: 1.6rem 0;
+  padding-inline: 0.45rem;
 }
 
-.statement p {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0;
+.md-header__option .md-header__button:not([hidden])::after {
+  content: attr(title);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.statement p:last-child {
-  color: var(--spurline-amber);
+.spurline-hero {
+  position: relative;
+  overflow: hidden;
+  margin: 1rem 0 2.5rem;
+  padding: clamp(2rem, 5vw, 3.75rem);
+  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--md-primary-fg-color) 24%, transparent);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--spurline-blue) 12%, transparent), transparent 34%),
+    linear-gradient(135deg, var(--spurline-paper), color-mix(in srgb, var(--spurline-blue) 9%, var(--spurline-paper)));
 }
 
-.grid {
-  display: grid;
-  gap: 1.2rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 2rem 0 3rem;
-}
-
-.grid article {
-  border-left: 4px solid var(--spurline-blue);
-  padding-left: 1rem;
-}
-
-.grid h2 {
+.spurline-hero h1 {
+  margin: 0 0 1.4rem;
   color: var(--spurline-ink);
-  margin-top: 0;
+  font-size: clamp(2.5rem, 5vw, 3.8rem);
+  line-height: 1;
 }
 
-.grid p,
-.hero-copy p:not(.eyebrow):not(.lede) {
-  color: var(--spurline-muted);
-  font-size: 1.05rem;
+.spurline-hero-mark {
+  display: block;
+  width: clamp(8rem, 21vw, 11rem);
+  margin: 0 auto 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 0.65rem 2rem rgba(7, 17, 46, 0.16);
+}
+
+.spurline-tagline {
+  max-width: 44rem;
+  margin: 0 auto 0.75rem;
+  color: var(--spurline-ink);
+  font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.spurline-intro {
+  max-width: 42rem;
+  margin: 0 auto 1.5rem;
+  font-size: 1rem;
   line-height: 1.65;
 }
 
-@media (max-width: 800px) {
-  .hero,
-  .grid {
+.spurline-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2.5rem;
+}
+
+.spurline-card {
+  padding: 1.25rem 1.35rem;
+  border: 1px solid color-mix(in srgb, var(--md-default-fg-color) 14%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--md-default-bg-color) 94%, var(--md-primary-fg-color));
+  box-shadow: 0 0.35rem 1.1rem rgba(7, 17, 46, 0.06);
+}
+
+.spurline-card h3 {
+  margin-top: 0;
+  color: var(--md-primary-fg-color);
+}
+
+.md-typeset blockquote {
+  border-left-color: var(--spurline-amber);
+}
+
+@media screen and (max-width: 52rem) {
+  .md-header__option .md-header__button:not([hidden]) {
+    width: 2.4rem;
+    padding-inline: 0.6rem;
+  }
+
+  .md-header__option .md-header__button:not([hidden])::after {
+    content: none;
+  }
+
+  .spurline-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    gap: 1.5rem;
+  .spurline-hero {
+    padding: 2rem 1.4rem;
   }
 
-  .hero-mark {
-    min-height: 240px;
+  .spurline-hero-mark {
+    width: 7.5rem;
   }
 }

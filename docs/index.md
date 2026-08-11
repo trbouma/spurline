@@ -1,65 +1,75 @@
-<section class="hero">
-  <div class="hero-mark">
-    <img src="assets/spurline-logo.svg" alt="Spurline logo">
-  </div>
-  <div class="hero-copy">
-    <p class="eyebrow">Local relay infrastructure</p>
-    <h1>Spurline</h1>
-    <p class="lede">A local-first relay for individuals and communities.</p>
-    <p>
-      Spurline is a lightweight Python relay for local development, private
-      infrastructure, and durable evidence stores that stay connected to the
-      broader relay network and local mesh without needing to duplicate all of it.
-    </p>
-  </div>
+---
+title: Spurline
+description: A local-first relay for individuals and communities.
+---
+
+<section class="spurline-hero" markdown>
+
+# Spurline
+
+<img class="spurline-hero-mark" src="assets/spurline-logo.svg" alt="Spurline logo">
+
+<p class="spurline-tagline">A local-first relay for individuals and communities.</p>
+
+<p class="spurline-intro">Spurline is a lightweight Python Nostr relay built for local continuity and control. It works with the broader relay network and the local mesh without needing to duplicate all of it.</p>
+
+[Why Spurline?](why-spurline.md){ .md-button .md-button--primary }
+[Get started](getting-started.md){ .md-button }
+
 </section>
 
-<section class="statement">
-  <p>A local-first relay for individuals and communities.</p>
-  <p>Built for local continuity and control. Works with the network and the mesh.</p>
-</section>
+## Local relay infrastructure
 
-<section class="grid">
-  <article>
-    <h2>Local First</h2>
-    <p>
-      Run a first-class Nostr relay on your own machine or inside a local
-      application stack.
-    </p>
-  </article>
-  <article>
-    <h2>Selective</h2>
-    <p>
-      A spur line carries the traffic that matters for its destination. Spurline
-      is designed around the same idea.
-    </p>
-  </article>
-  <article>
-    <h2>Durable</h2>
-    <p>
-      Events are validated, stored in SQLite, and replayed to matching
-      subscriptions.
-    </p>
-  </article>
-</section>
+Spurline gives a person, organization, application, or community a local relay
+that can preserve the events that matter nearby. Public relays remain the
+mainline. Spurline is the spur: connected to the larger network, but useful in
+its own local place.
 
-## Run Locally
+<div class="spurline-grid" markdown>
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev,docs]"
-spurline --host 127.0.0.1 --port 8080 --database ./data/spurline.sqlite3
-```
+<article class="spurline-card" markdown>
 
-Connect a Nostr client to:
+### Local first
+
+Run a Nostr relay on your own machine, inside a local application stack, or
+eventually as part of an appliance.
+
+</article>
+
+<article class="spurline-card" markdown>
+
+### Selective
+
+A spur line carries the traffic that matters for its destination. Spurline is
+designed around local relevance rather than whole-network duplication.
+
+</article>
+
+<article class="spurline-card" markdown>
+
+### Durable
+
+Events are validated, stored in SQLite, replayed to matching subscriptions, and
+served through a FastAPI runtime.
+
+</article>
+
+</div>
+
+## Built for the Acorn stack
+
+Spurline is a sibling project in the Acorn local-first stack. Acorn coordinates
+keys, signing, records, and wallet state. Safebox Web provides the human
+workflow surface. Grove stores opaque encrypted blobs. Spurline provides local
+relay continuity.
 
 ```text
-ws://127.0.0.1:8080
+Safebox Web -> Acorn -> Spurline
+                      -> Grove
 ```
 
-## Build The Site
+Spurline is independent enough to run on its own, but shaped to become part of
+the future Lockbox appliance profile alongside Acorn, Safebox Web, and Grove.
 
-```bash
-mkdocs serve
-```
+[Read the rationale](why-spurline.md){ .md-button .md-button--primary }
+[Review the relay API](relay-api.md){ .md-button }

@@ -1,10 +1,51 @@
 site_name: Spurline
 site_description: A local relay for the global Nostr network.
+site_url: https://trbouma.github.io/spurline/
+repo_url: https://github.com/trbouma/spurline
+repo_name: trbouma/spurline
 theme:
-  name: mkdocs
-  color_mode: auto
-  user_color_mode_toggle: true
+  name: material
+  language: en
+  logo: assets/spurline-logo.svg
+  favicon: assets/spurline-logo.svg
+  features:
+    - navigation.top
+    - navigation.sections
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Use dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Use light mode
 nav:
   - Home: index.md
+  - Understand Spurline:
+      - Why Spurline?: why-spurline.md
+      - Runtime Model: runtime-model.md
+  - Operate Spurline:
+      - Getting Started: getting-started.md
+      - Relay API: relay-api.md
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
 extra_css:
   - stylesheets/extra.css
+
+copyright: Spurline is open-source software released under the MIT License.
