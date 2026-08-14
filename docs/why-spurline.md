@@ -44,23 +44,32 @@ The goal is not isolation. The goal is a credible local base:
 - synchronize selectively when other relays or mesh peers are available;
 - make local operation inspectable and boring.
 
-## The Acorn stack
+## The Mainstay product family
 
-Spurline is designed as a sibling product in the Acorn stack:
+Spurline is designed as an independently useful sibling in the Mainstay product
+family:
 
-- **Acorn** coordinates keys, signing, encrypted records, wallet state, and
-  recovery material.
-- **Safebox Web** provides the human-facing workflows.
+- **Mainstay** is the future unified local-first application.
+- **Safebox Web** provides the current human-facing workflows and practical
+  application foundation.
+- **Acorn** safeguards user-controlled keys, funds, and records, and provides
+  signing and recovery below the application layer.
 - **Grove** stores opaque encrypted blobs and attachments.
 - **Spurline** preserves and serves Nostr events locally.
+- **Clear** optionally provides bounded local currencies.
 
 Each product should remain independently useful. Together, they form a
-local-first runtime for custody, records, storage, and relay continuity.
+local-first runtime for keys, funds, records, storage, events, and continuity.
+
+**Good boundaries, not barriers.** Spurline keeps a clear relay boundary and
+failure domain, while standard Nostr events allow compatible applications and
+infrastructure to publish, query, replicate, and synchronize through it.
 
 ## Toward Lockbox
 
-The long-term packaging direction is Lockbox: an appliance-like product that
-runs Acorn, Safebox Web, Grove, and Spurline locally.
+The long-term packaging direction is Lockbox: the hardware-first appliance that
+runs Mainstay and supporting services such as Acorn, Grove, Spurline, and
+optional Clear currencies locally.
 
 The initial appliance target is FreeBSD on Raspberry Pi 4 with a physical
 keypad and TROPIC01 HSM. In that setting, Spurline becomes the local relay

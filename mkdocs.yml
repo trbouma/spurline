@@ -34,6 +34,7 @@ nav:
   - Understand Spurline:
       - Why Spurline?: why-spurline.md
       - Runtime Model: runtime-model.md
+      - Selective Relay Synchronization: selective-relay-synchronization.md
   - Operate Spurline:
       - Getting Started: getting-started.md
       - Relay API: relay-api.md

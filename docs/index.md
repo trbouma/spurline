@@ -56,20 +56,25 @@ served through a FastAPI runtime.
 
 </div>
 
-## Built for the Acorn stack
+## Part of the Mainstay product family
 
-Spurline is a sibling project in the Acorn local-first stack. Acorn coordinates
-keys, signing, records, and wallet state. Safebox Web provides the human
-workflow surface. Grove stores opaque encrypted blobs. Spurline provides local
-relay continuity.
+Spurline is an independently useful sibling in the Mainstay product family.
+Acorn safeguards user-controlled keys, funds, and records. Safebox Web provides
+the current human workflow surface. Grove stores opaque encrypted blobs.
+Spurline provides local event availability and selective synchronization.
 
 ```text
 Safebox Web -> Acorn -> Spurline
                       -> Grove
 ```
 
-Spurline is independent enough to run on its own, but shaped to become part of
-the future Lockbox appliance profile alongside Acorn, Safebox Web, and Grove.
+**Good boundaries, not barriers.** Spurline remains a relay rather than becoming
+the wallet, blob store, mint, or application. Standard Nostr events let it
+cooperate with those components without making any one deployment permanent.
+
+Spurline is independent enough to run on its own, but shaped to support
+Mainstay and the future Lockbox appliance profile alongside Acorn, Safebox Web,
+Grove, and optional Clear currencies.
 
 [Read the rationale](why-spurline.md){ .md-button .md-button--primary }
 [Review the relay API](relay-api.md){ .md-button }
