@@ -11,6 +11,7 @@ class Settings:
     port: int = 8080
     database_path: Path = Path("spurline.sqlite3")
     verify_signatures: bool = True
+    public_url: str | None = None
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -19,6 +20,7 @@ class Settings:
             port=int(os.getenv("SPURLINE_PORT", "8080")),
             database_path=Path(os.getenv("SPURLINE_DATABASE", "spurline.sqlite3")),
             verify_signatures=_env_bool("SPURLINE_VERIFY_SIGNATURES", default=True),
+            public_url=os.getenv("SPURLINE_PUBLIC_URL") or None,
         )
 
 

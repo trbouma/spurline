@@ -181,7 +181,7 @@ def relay_info(settings: Settings) -> dict[str, Any]:
             "restricted_writes": False,
         },
         "relay": {
-            "websocket_url": f"ws://{settings.host}:{settings.port}",
+            "websocket_url": settings.public_url or f"ws://{settings.host}:{settings.port}",
             "health_url": "/health",
             "info_url": "/info",
         },

@@ -37,6 +37,21 @@ def test_info_response_includes_relay_metadata(tmp_path: Path) -> None:
     assert body["relay"]["websocket_url"] == "ws://127.0.0.1:8080"
 
 
+def test_info_response_uses_public_relay_url(tmp_path: Path) -> None:
+    app = create_app(
+        Settings(
+            database_path=tmp_path / "relay.sqlite3",
+            public_url="wss://relay.example.com",
+        )
+    )
+    client = TestClient(app)
+
+    response = client.get("/info")
+
+    assert response.status_code == 200
+    assert response.json()["relay"]["websocket_url"] == "wss://relay.example.com"
+
+
 def test_websocket_replays_matching_events(tmp_path: Path) -> None:
     client = TestClient(create_test_app(tmp_path, verify_signatures=False))
     event = {

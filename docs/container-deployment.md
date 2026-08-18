@@ -24,13 +24,18 @@ Docker Compose reads `.env` automatically. `SPURLINE_DATA_DIR` is required so
 the database location cannot silently change between deployments. The supplied
 example sets it to `/mnt/bitcoin/spurline`.
 
-The default port is bound to host loopback only:
+The supplied deployment example binds port `8780` on all host interfaces so a
+separate reverse proxy server can reach it:
 
 ```text
-ws://127.0.0.1:8780/
-http://127.0.0.1:8780/health
-http://127.0.0.1:8780/info
+ws://SPURLINE_SERVER_IP:8780/
+http://SPURLINE_SERVER_IP:8780/health
+http://SPURLINE_SERVER_IP:8780/info
 ```
+
+Restrict inbound TCP port `8780` to the reverse proxy server at the host
+firewall. Set `SPURLINE_PUBLIC_URL` to the external `wss://` URL served by that
+proxy.
 
 Follow runtime logs with:
 
@@ -79,16 +84,18 @@ the underlying host data.
 
 ## Publish on another interface
 
-Loopback is the conservative default. To make the port reachable on the local
-network, explicitly select a publish address:
+The example `.env` supports a reverse proxy running on a different server:
 
 ```dotenv
 SPURLINE_BIND_ADDRESS=0.0.0.0
+SPURLINE_PORT=8780
+SPURLINE_PUBLIC_URL=wss://relay.example.com
 ```
 
-For internet-facing operation, put Spurline behind a TLS reverse proxy that
-supports WebSocket upgrades. Publish `wss://` to clients rather than exposing
-the plain WebSocket port directly.
+If the reverse proxy runs on the Spurline host itself, bind to `127.0.0.1`
+instead. In either topology, the proxy must support WebSocket upgrades and
+publish `wss://` to clients rather than exposing the plain WebSocket port
+directly.
 
 ## Configuration
 
@@ -97,8 +104,9 @@ Compose reads these deployment settings from `.env`:
 | Variable | Example value | Purpose |
 | --- | --- | --- |
 | `SPURLINE_DATA_DIR` | `/mnt/bitcoin/spurline` | Host directory backing `spurline-data` |
-| `SPURLINE_BIND_ADDRESS` | `127.0.0.1` | Host interface publishing the relay port |
+| `SPURLINE_BIND_ADDRESS` | `0.0.0.0` | Host interface publishing the relay port |
 | `SPURLINE_PORT` | `8780` | Published host port |
+| `SPURLINE_PUBLIC_URL` | unset | External `wss://` relay URL advertised in metadata |
 | `SPURLINE_VERIFY_SIGNATURES` | `true` | Verify Nostr event signatures |
 
 The Compose container target remains port `8080` even when a different host
@@ -112,6 +120,7 @@ The image recognizes these environment variables:
 | `SPURLINE_PORT` | `8080` | Internal HTTP and WebSocket port |
 | `SPURLINE_DATABASE` | `/data/spurline.sqlite3` | SQLite database path |
 | `SPURLINE_VERIFY_SIGNATURES` | `true` | Verify Nostr event signatures |
+| `SPURLINE_PUBLIC_URL` | unset | External relay URL used by `/info` |
 
 Signature verification should remain enabled outside disposable test fixtures.
 

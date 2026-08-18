@@ -24,6 +24,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Accept events without Schnorr signature verification.",
     )
+    parser.add_argument(
+        "--public-url",
+        help="Externally visible ws:// or wss:// relay URL.",
+    )
     return parser
 
 
@@ -35,5 +39,6 @@ def main() -> None:
         port=args.port,
         database_path=args.database,
         verify_signatures=not args.no_verify_signatures,
+        public_url=args.public_url,
     )
     uvicorn.run(create_app(settings), host=settings.host, port=settings.port)

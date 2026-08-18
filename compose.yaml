@@ -9,12 +9,13 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "${SPURLINE_BIND_ADDRESS:-127.0.0.1}:${SPURLINE_PORT:-8780}:8080"
+      - "${SPURLINE_BIND_ADDRESS:-0.0.0.0}:${SPURLINE_PORT:-8780}:8080"
     environment:
       SPURLINE_HOST: 0.0.0.0
       SPURLINE_PORT: 8080
       SPURLINE_DATABASE: /data/spurline.sqlite3
       SPURLINE_VERIFY_SIGNATURES: "${SPURLINE_VERIFY_SIGNATURES:-true}"
+      SPURLINE_PUBLIC_URL: "${SPURLINE_PUBLIC_URL:-}"
     volumes:
       - spurline-data:/data
     read_only: true
