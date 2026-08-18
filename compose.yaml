@@ -1,0 +1,32 @@
+services:
+  spurline:
+    build:
+      context: .
+    image: spurline:local
+    container_name: spurline
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${SPURLINE_PUBLISH_ADDRESS:-127.0.0.1}:${SPURLINE_PUBLISH_PORT:-8080}:8080"
+    environment:
+      SPURLINE_HOST: 0.0.0.0
+      SPURLINE_PORT: 8080
+      SPURLINE_DATABASE: /data/spurline.sqlite3
+      SPURLINE_VERIFY_SIGNATURES: "${SPURLINE_VERIFY_SIGNATURES:-true}"
+    volumes:
+      - spurline-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  spurline-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${SPURLINE_DATA_DIR:-/mnt/bitcoin/spurline}"

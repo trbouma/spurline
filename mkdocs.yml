@@ -37,6 +37,7 @@ nav:
       - Selective Relay Synchronization: selective-relay-synchronization.md
   - Operate Spurline:
       - Getting Started: getting-started.md
+      - Container Deployment: container-deployment.md
       - Relay API: relay-api.md
 
 markdown_extensions:
