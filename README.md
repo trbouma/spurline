@@ -60,12 +60,15 @@ poetry run pytest
 Build and run Spurline with a persistent SQLite volume:
 
 ```bash
+cp .env.example .env
+sudo install -d -o 10001 -g 10001 /mnt/bitcoin/spurline
 docker compose up --build --detach
 docker compose ps
-curl http://127.0.0.1:8080/health
+curl http://127.0.0.1:8780/health
 ```
 
-The container listens on port `8080`, runs as an unprivileged user, and uses a
+Docker publishes Spurline at `127.0.0.1:8780` by default and forwards it to
+container port `8080`. The container runs as an unprivileged user and uses a
 named Docker volume backed by `/mnt/bitcoin/spurline` on the host. Create that
 directory for container UID and GID `10001` before the first start. See the
 [container deployment guide](https://trbouma.github.io/spurline/container-deployment/)

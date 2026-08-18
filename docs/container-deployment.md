@@ -14,16 +14,22 @@ serves Nostr WebSocket traffic and HTTP probes on port `8080`.
 Build and start the relay:
 
 ```bash
+cp .env.example .env
+sudo install -d -o 10001 -g 10001 /mnt/bitcoin/spurline
 docker compose up --build --detach
 docker compose ps
 ```
 
+Docker Compose reads `.env` automatically. `SPURLINE_DATA_DIR` is required so
+the database location cannot silently change between deployments. The supplied
+example sets it to `/mnt/bitcoin/spurline`.
+
 The default port is bound to host loopback only:
 
 ```text
-ws://127.0.0.1:8080/
-http://127.0.0.1:8080/health
-http://127.0.0.1:8080/info
+ws://127.0.0.1:8780/
+http://127.0.0.1:8780/health
+http://127.0.0.1:8780/info
 ```
 
 Follow runtime logs with:
@@ -32,7 +38,7 @@ Follow runtime logs with:
 docker compose logs --follow spurline
 ```
 
-The `spurline-data` Docker volume uses the local driver to bind the host
+The fixed-name `spurline-data` Docker volume uses the local driver to bind the host
 directory `/mnt/bitcoin/spurline` at `/data` inside the container. This gives
 Docker a named volume while keeping the database at an explicit host location.
 Create the directory with ownership matching Spurline's unprivileged container
@@ -59,15 +65,15 @@ docker compose up --build --detach --force-recreate
 untouched. Removing the Docker volume registration does not replace a proper
 backup policy for the host directory.
 
-To back the named volume with another host location, set
-`SPURLINE_DATA_DIR` when Compose first creates the volume:
+To back the named volume with another host location, edit
+`SPURLINE_DATA_DIR` in `.env` before Compose first creates the volume:
 
-```bash
-SPURLINE_DATA_DIR=/srv/spurline docker compose up --build --detach
+```dotenv
+SPURLINE_DATA_DIR=/srv/spurline
 ```
 
 Docker records the selected device path in the volume definition. If you later
-change `SPURLINE_DATA_DIR`, remove and recreate the empty Docker volume
+change `SPURLINE_DATA_DIR`, remove and recreate the Docker volume
 registration before starting Spurline against the new directory. Do not delete
 the underlying host data.
 
@@ -76,8 +82,8 @@ the underlying host data.
 Loopback is the conservative default. To make the port reachable on the local
 network, explicitly select a publish address:
 
-```bash
-SPURLINE_PUBLISH_ADDRESS=0.0.0.0 docker compose up --build --detach
+```dotenv
+SPURLINE_BIND_ADDRESS=0.0.0.0
 ```
 
 For internet-facing operation, put Spurline behind a TLS reverse proxy that
@@ -85,6 +91,18 @@ supports WebSocket upgrades. Publish `wss://` to clients rather than exposing
 the plain WebSocket port directly.
 
 ## Configuration
+
+Compose reads these deployment settings from `.env`:
+
+| Variable | Example value | Purpose |
+| --- | --- | --- |
+| `SPURLINE_DATA_DIR` | `/mnt/bitcoin/spurline` | Host directory backing `spurline-data` |
+| `SPURLINE_BIND_ADDRESS` | `127.0.0.1` | Host interface publishing the relay port |
+| `SPURLINE_PORT` | `8780` | Published host port |
+| `SPURLINE_VERIFY_SIGNATURES` | `true` | Verify Nostr event signatures |
+
+The Compose container target remains port `8080` even when a different host
+port is selected.
 
 The image recognizes these environment variables:
 
@@ -106,7 +124,7 @@ Registry:
 docker pull ghcr.io/trbouma/spurline:latest
 docker run --detach \
   --name spurline \
-  --publish 127.0.0.1:8080:8080 \
+  --publish 127.0.0.1:8780:8080 \
   --volume /mnt/bitcoin/spurline:/data \
   ghcr.io/trbouma/spurline:latest
 ```
