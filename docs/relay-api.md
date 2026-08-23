@@ -35,6 +35,10 @@ GET /info
 GET /.well-known/nostr.json
 ```
 
+`/` uses content negotiation. Browser requests that accept `text/html` receive
+the Spurline instance page. Other clients receive the same JSON relay metadata
+as before. WebSocket upgrades on `/` are unaffected.
+
 `/health` returns a minimal readiness response:
 
 ```json

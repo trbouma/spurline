@@ -66,6 +66,14 @@ relay events:
 docker compose up --build --detach --force-recreate
 ```
 
+For a routine source deployment, the included refresh script pulls the latest
+commit, rebuilds and recreates the container, then waits for Spurline's health
+check to pass:
+
+```bash
+./refresh-containers.sh
+```
+
 `docker compose down` leaves the named volume, host directory, and database
 untouched. Removing the Docker volume registration does not replace a proper
 backup policy for the host directory.

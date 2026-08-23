@@ -3,15 +3,18 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 
 from . import __version__
 from .config import Settings
 from .events import EventValidationError, StoredEvent, validate_event
 from .filters import matches_any_filter, normalize_filters
+from .homepage import render_homepage
 from .store import EventStore
 
 SubscriptionMap = dict[str, list[dict[str, Any]]]
@@ -137,13 +140,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         return response
 
-    @app.get("/")
-    async def root():
+    @app.get("/", response_model=None)
+    async def root(request: Request):
+        if "text/html" in request.headers.get("accept", "").lower():
+            info = relay_info(configured)
+            return HTMLResponse(
+                render_homepage(
+                    version=__version__,
+                    relay_url=info["relay"]["websocket_url"],
+                    verify_signatures=configured.verify_signatures,
+                    supported_nips=info["supported_nips"],
+                )
+            )
         return relay_info(configured)
 
     @app.get("/health")
     async def health():
         return {"status": "ok", "service": "spurline", "version": __version__}
+
+    @app.get("/assets/spurline-logo.svg", include_in_schema=False)
+    async def spurline_logo():
+        return FileResponse(
+            Path(__file__).with_name("assets") / "spurline-logo.svg",
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
 
     @app.get("/info")
     async def info():

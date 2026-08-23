@@ -52,6 +52,31 @@ def test_info_response_uses_public_relay_url(tmp_path: Path) -> None:
     assert response.json()["relay"]["websocket_url"] == "wss://relay.example.com"
 
 
+def test_browser_homepage_is_friendly_and_keeps_json_api(tmp_path: Path) -> None:
+    app = create_app(
+        Settings(
+            database_path=tmp_path / "relay.sqlite3",
+            public_url="wss://spurline.example",
+        )
+    )
+    client = TestClient(app)
+
+    homepage = client.get("/", headers={"Accept": "text/html"})
+    information = client.get("/", headers={"Accept": "application/nostr+json"})
+    logo = client.get("/assets/spurline-logo.svg")
+
+    assert homepage.status_code == 200
+    assert homepage.headers["content-type"].startswith("text/html")
+    assert "Spurline" in homepage.text
+    assert "wss://spurline.example" in homepage.text
+    assert "Copy relay URL" in homepage.text
+    assert "Local-first Nostr infrastructure" in homepage.text
+    assert information.status_code == 200
+    assert information.json()["software"] == "spurline"
+    assert logo.status_code == 200
+    assert logo.headers["content-type"].startswith("image/svg+xml")
+
+
 def test_websocket_replays_matching_events(tmp_path: Path) -> None:
     client = TestClient(create_test_app(tmp_path, verify_signatures=False))
     event = {
