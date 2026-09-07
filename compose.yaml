@@ -16,6 +16,8 @@ services:
       SPURLINE_DATABASE: /data/spurline.sqlite3
       SPURLINE_VERIFY_SIGNATURES: "${SPURLINE_VERIFY_SIGNATURES:-true}"
       SPURLINE_PUBLIC_URL: "${SPURLINE_PUBLIC_URL:-}"
+      SPURLINE_SERVICE_NSEC: "${SPURLINE_SERVICE_NSEC:-}"
+      SPURLINE_SERVICE_MANAGEMENT: "${SPURLINE_SERVICE_MANAGEMENT:-independent}"
     volumes:
       - spurline-data:/data
     read_only: true

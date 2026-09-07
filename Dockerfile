@@ -19,6 +19,7 @@ RUN apt-get update \
         libffi-dev \
         libtool \
         pkg-config \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python -m pip install "poetry==${POETRY_VERSION}"

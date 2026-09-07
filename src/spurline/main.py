@@ -15,6 +15,7 @@ from .config import Settings
 from .events import EventValidationError, StoredEvent, validate_event
 from .filters import matches_any_filter, normalize_filters
 from .homepage import render_homepage
+from .identity import bind_service_identity
 from .store import EventStore
 
 SubscriptionMap = dict[str, list[dict[str, Any]]]
@@ -112,8 +113,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        yield
-        app.state.store.close()
+        try:
+            bind_service_identity(
+                configured.database_path, npub=configured.service_npub
+            )
+            yield
+        finally:
+            app.state.store.close()
 
     app = FastAPI(
         title="Spurline",
@@ -150,6 +156,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     relay_url=info["relay"]["websocket_url"],
                     verify_signatures=configured.verify_signatures,
                     supported_nips=info["supported_nips"],
+                    service_npub=configured.service_npub,
+                    service_fips_ipv6_address=(
+                        configured.service_fips_ipv6_address
+                    ),
                 )
             )
         return relay_info(configured)
@@ -193,6 +203,15 @@ def relay_info(settings: Settings) -> dict[str, Any]:
         "description": "A local-first relay for individuals and communities.",
         "software": "spurline",
         "version": __version__,
+        "service_identity": {
+            "npub": settings.service_npub,
+            "fips_ipv6_address": settings.service_fips_ipv6_address,
+            "type": "nostr-relay",
+            "management": settings.service_management,
+            "state": "uncommissioned" if settings.service_npub else "unconfigured",
+            "descriptor_event_id": None,
+            "operator": None,
+        },
         "supported_nips": [1],
         "contact": "",
         "pubkey": "",

@@ -49,6 +49,12 @@ http://127.0.0.1:8080/info
 http://127.0.0.1:8080/.well-known/nostr.json
 ```
 
+Set `SPURLINE_SERVICE_NSEC` to a stable 32-byte hex key or `nsec` to give the
+relay a persistent Nostr service identity. Spurline publishes only the derived
+`npub` and deterministic FIPS IPv6 address. Once configured, the identity is
+bound to the relay data directory and the same private key is required on later
+starts.
+
 ## Test
 
 ```bash

@@ -11,6 +11,8 @@ def render_homepage(
     relay_url: str,
     verify_signatures: bool,
     supported_nips: list[int],
+    service_npub: str | None,
+    service_fips_ipv6_address: str | None,
 ) -> str:
     """Render a browser-facing relay overview with escaped configuration."""
 
@@ -19,6 +21,10 @@ def render_homepage(
         "relay_url": escape(relay_url),
         "signature_status": "Enabled" if verify_signatures else "Disabled",
         "supported_nips": escape(", ".join(f"NIP-{nip:02d}" for nip in supported_nips)),
+        "service_npub": escape(service_npub or "Not configured"),
+        "service_fips_ipv6_address": escape(
+            service_fips_ipv6_address or "Not configured"
+        ),
     }
 
     return f"""<!doctype html>
@@ -336,6 +342,8 @@ def render_homepage(
           <div class="row"><dt>Protocol</dt><dd>Nostr over WebSockets</dd></div>
           <div class="row"><dt>Supported NIPs</dt><dd>{values['supported_nips']}</dd></div>
           <div class="row"><dt>Signatures</dt><dd>{values['signature_status']}</dd></div>
+          <div class="row"><dt>Service identity</dt><dd><code>{values['service_npub']}</code></dd></div>
+          <div class="row"><dt>FIPS IPv6 address</dt><dd><code>{values['service_fips_ipv6_address']}</code></dd></div>
         </dl>
       </section>
 

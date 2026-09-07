@@ -8,9 +8,10 @@ readme = "README.md"
 packages = [{ include = "spurline", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<4.0"
+python = ">=3.11,<3.14"
 coincurve = ">=20.0.0"
 fastapi = ">=0.115.0"
+stroma-nostr = { git = "https://github.com/trbouma/stroma.git" }
 uvicorn = { version = ">=0.32.0", extras = ["standard"] }
 
 [tool.poetry.group.dev.dependencies]

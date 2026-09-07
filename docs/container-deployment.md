@@ -129,6 +129,8 @@ The image recognizes these environment variables:
 | `SPURLINE_DATABASE` | `/data/spurline.sqlite3` | SQLite database path |
 | `SPURLINE_VERIFY_SIGNATURES` | `true` | Verify Nostr event signatures |
 | `SPURLINE_PUBLIC_URL` | unset | External relay URL used by `/info` |
+| `SPURLINE_SERVICE_NSEC` | unset | Stable service private key, as 32-byte hex or `nsec` |
+| `SPURLINE_SERVICE_MANAGEMENT` | `independent` | `independent` or `mainstay-managed` identity lifecycle |
 
 Signature verification should remain enabled outside disposable test fixtures.
 
