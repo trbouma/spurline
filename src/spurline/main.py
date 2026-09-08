@@ -150,6 +150,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def root(request: Request):
         if "text/html" in request.headers.get("accept", "").lower():
             info = relay_info(configured)
+            identity = info["service_identity"]
             return HTMLResponse(
                 render_homepage(
                     version=__version__,
@@ -160,6 +161,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     service_fips_ipv6_address=(
                         configured.service_fips_ipv6_address
                     ),
+                    service_management=identity["management"],
+                    service_state=identity["state"],
                 )
             )
         return relay_info(configured)

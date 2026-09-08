@@ -13,6 +13,8 @@ def render_homepage(
     supported_nips: list[int],
     service_npub: str | None,
     service_fips_ipv6_address: str | None,
+    service_management: str,
+    service_state: str,
 ) -> str:
     """Render a browser-facing relay overview with escaped configuration."""
 
@@ -25,6 +27,8 @@ def render_homepage(
         "service_fips_ipv6_address": escape(
             service_fips_ipv6_address or "Not configured"
         ),
+        "service_management": escape(service_management),
+        "service_state": escape(service_state),
     }
 
     return f"""<!doctype html>
@@ -34,7 +38,7 @@ def render_homepage(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Spurline local-first Nostr relay">
   <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="/assets/spurline-logo.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/spurline-logo.svg" type="image/svg+xml">
   <title>Spurline | Local-first Nostr relay</title>
   <style>
     :root {{
@@ -344,6 +348,8 @@ def render_homepage(
           <div class="row"><dt>Signatures</dt><dd>{values['signature_status']}</dd></div>
           <div class="row"><dt>Service identity</dt><dd><code>{values['service_npub']}</code></dd></div>
           <div class="row"><dt>FIPS IPv6 address</dt><dd><code>{values['service_fips_ipv6_address']}</code></dd></div>
+          <div class="row"><dt>Management</dt><dd>{values['service_management']}</dd></div>
+          <div class="row"><dt>Identity state</dt><dd>{values['service_state']}</dd></div>
         </dl>
       </section>
 
@@ -368,9 +374,9 @@ def render_homepage(
     </aside>
 
     <nav class="links" aria-label="Relay resources">
-      <a href="/info">Relay information</a>
-      <a href="/health">Health</a>
-      <a href="/docs">API documentation</a>
+      <a href="info">Relay information</a>
+      <a href="health">Health</a>
+      <a href="docs">API documentation</a>
       <a href="https://trbouma.github.io/spurline/">About Spurline</a>
       <span class="version">Spurline {values['version']}</span>
     </nav>

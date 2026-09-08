@@ -117,6 +117,12 @@ def test_service_identity_is_reported_and_bound_to_relay_data(tmp_path: Path) ->
     assert SERVICE_NPUB in homepage.text
     assert "FIPS IPv6 address" in homepage.text
     assert SERVICE_FIPS_IPV6_ADDRESS in homepage.text
+    assert "Management" in homepage.text
+    assert "independent" in homepage.text
+    assert "Identity state" in homepage.text
+    assert "uncommissioned" in homepage.text
+    assert 'href="health"' in homepage.text
+    assert 'href="/health"' not in homepage.text
     sentinel = json.loads(
         (configured.database_path.parent / "service-identity.json").read_text(
             encoding="utf-8"
