@@ -376,8 +376,7 @@ def render_homepage(
     <nav class="links" aria-label="Relay resources">
       <a href="info">Relay information</a>
       <a href="health">Health</a>
-      <a href="docs">API documentation</a>
-      <a href="https://trbouma.github.io/spurline/">About Spurline</a>
+      <a href="https://trbouma.github.io/spurline/">Docs</a>
       <span class="version">Spurline {values['version']}</span>
     </nav>
   </main>

@@ -83,6 +83,10 @@ def test_browser_homepage_is_friendly_and_keeps_json_api(tmp_path: Path) -> None
     assert "wss://spurline.example" in homepage.text
     assert "Copy relay URL" in homepage.text
     assert "Local-first Nostr infrastructure" in homepage.text
+    assert '<a href="https://trbouma.github.io/spurline/">Docs</a>' in homepage.text
+    assert 'href="docs"' not in homepage.text
+    assert "API documentation" not in homepage.text
+    assert "About Spurline" not in homepage.text
     assert information.status_code == 200
     assert information.json()["software"] == "spurline"
     assert logo.status_code == 200
