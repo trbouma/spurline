@@ -73,10 +73,11 @@ docker compose ps
 curl http://127.0.0.1:8780/health
 ```
 
-The example deployment publishes Spurline on host port `8780` for access by a
-separate reverse proxy and forwards it to container port `8080`. Set
-`SPURLINE_PUBLIC_URL` to the proxy's external `wss://` URL. The container runs
-as an unprivileged user and uses a named Docker volume backed by
+The example deployment publishes Spurline on loopback port `8780` for a local
+reverse proxy and forwards it to container port `8080`. Select a private bind
+address explicitly when the proxy runs on another machine, and set
+`SPURLINE_PUBLIC_URL` to its external `wss://` URL. The container runs as an
+unprivileged user and uses a named Docker volume backed by
 `/mnt/bitcoin/spurline` on the host. Create that directory for container UID
 and GID `10001` before the first start. See the
 [container deployment guide](https://trbouma.github.io/spurline/container-deployment/)

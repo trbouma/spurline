@@ -9,6 +9,10 @@ Spurline ships with a production-oriented container build for AMD64 and ARM64.
 It runs as an unprivileged user, stores its SQLite database in `/data`, and
 serves Nostr WebSocket traffic and HTTP probes on port `8080`.
 
+This guide describes a standalone Spurline instance. When Spurline is part of
+a Mainstay instance, Mainstay owns its configuration, data path, start, update,
+and recovery lifecycle; operate it from the Mainstay deployment directory.
+
 ## Start with Docker Compose
 
 Build and start the relay:
@@ -24,18 +28,16 @@ Docker Compose reads `.env` automatically. `SPURLINE_DATA_DIR` is required so
 the database location cannot silently change between deployments. The supplied
 example sets it to `/mnt/bitcoin/spurline`.
 
-The supplied deployment example binds port `8780` on all host interfaces so a
-separate reverse proxy server can reach it:
+The supplied deployment example binds port `8780` on loopback for a reverse
+proxy running on the same host:
 
 ```text
-ws://SPURLINE_SERVER_IP:8780/
-http://SPURLINE_SERVER_IP:8780/health
-http://SPURLINE_SERVER_IP:8780/info
+ws://127.0.0.1:8780/
+http://127.0.0.1:8780/health
+http://127.0.0.1:8780/info
 ```
 
-Restrict inbound TCP port `8780` to the reverse proxy server at the host
-firewall. Set `SPURLINE_PUBLIC_URL` to the external `wss://` URL served by that
-proxy.
+Set `SPURLINE_PUBLIC_URL` to the external `wss://` URL served by the proxy.
 
 Follow runtime logs with:
 
@@ -66,9 +68,10 @@ relay events:
 docker compose up --build --detach --force-recreate
 ```
 
-For a routine source deployment, the included refresh script pulls the latest
-commit, rebuilds and recreates the container, then waits for Spurline's health
-check to pass:
+For a routine source deployment from a dedicated checkout, the included
+refresh script requires a clean tracked tree, accepts only a fast-forward
+update, validates Compose, rebuilds and recreates the container, and then waits
+for Spurline's health check to pass:
 
 ```bash
 ./refresh-containers.sh
@@ -95,13 +98,14 @@ the underlying host data.
 The example `.env` supports a reverse proxy running on a different server:
 
 ```dotenv
-SPURLINE_BIND_ADDRESS=0.0.0.0
+SPURLINE_BIND_ADDRESS=10.0.0.20
 SPURLINE_PORT=8780
 SPURLINE_PUBLIC_URL=wss://relay.example.com
 ```
 
-If the reverse proxy runs on the Spurline host itself, bind to `127.0.0.1`
-instead. In either topology, the proxy must support WebSocket upgrades and
+When the reverse proxy runs elsewhere, bind only to the required private LAN or
+VPN interface and restrict access to that proxy with network policy. In either
+topology, the proxy must support WebSocket upgrades and
 publish `wss://` to clients rather than exposing the plain WebSocket port
 directly.
 
@@ -112,7 +116,7 @@ Compose reads these deployment settings from `.env`:
 | Variable | Example value | Purpose |
 | --- | --- | --- |
 | `SPURLINE_DATA_DIR` | `/mnt/bitcoin/spurline` | Host directory backing `spurline-data` |
-| `SPURLINE_BIND_ADDRESS` | `0.0.0.0` | Host interface publishing the relay port |
+| `SPURLINE_BIND_ADDRESS` | `127.0.0.1` | Host interface publishing the relay port |
 | `SPURLINE_PORT` | `8780` | Published host port |
 | `SPURLINE_PUBLIC_URL` | unset | External `wss://` relay URL advertised in metadata |
 | `SPURLINE_VERIFY_SIGNATURES` | `true` | Verify Nostr event signatures |
