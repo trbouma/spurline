@@ -83,6 +83,24 @@ and GID `10001` before the first start. See the
 [container deployment guide](https://trbouma.github.io/spurline/container-deployment/)
 for image publishing, ARM64 support, reverse-proxy guidance, and configuration.
 
+## Query performance and upgrades
+
+Relay queries apply author, kind, time, ID-prefix, and tag filters in SQLite
+before loading event content. Results remain bounded by the existing relay
+limit. Database reads and writes run in worker threads so they do not block
+the HTTP/WebSocket event loop.
+
+On the first start after this upgrade, Spurline transactionally backfills a
+tag lookup table and creates additional query indexes. Existing events and
+deletions are preserved. Back up the database before upgrading, allow extra
+startup time and disk space for a large relay, and do not run an older writer
+against the upgraded database (it would not maintain the tag lookup table).
+
+After rebuilding/redeploying the relay, check `/health` and the homepage under
+normal subscription traffic. This change addresses application-level query
+blocking; proxy, host resource, or network bottlenecks still require separate
+operational checks.
+
 ## Site
 
 ```bash

@@ -69,7 +69,7 @@ class RelayService:
             await websocket.send_json(["OK", event_id, False, f"invalid: {exc}"])
             return
 
-        inserted = self.store.save(event)
+        inserted = await asyncio.to_thread(self.store.save, event)
         if not inserted:
             await websocket.send_json(["OK", event.id, True, "duplicate: already have event"])
             return
@@ -86,7 +86,8 @@ class RelayService:
         filters = normalize_filters(payload[2:])
         self.connections[websocket][subscription_id] = filters
 
-        for event in self.store.query(filters):
+        events = await asyncio.to_thread(self.store.query, filters)
+        for event in events:
             await websocket.send_json(["EVENT", subscription_id, event.to_dict()])
         await websocket.send_json(["EOSE", subscription_id])
 

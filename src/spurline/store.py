@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .events import StoredEvent
-from .filters import filter_limit, matches_any_filter
+from .filters import filter_limit
 
 
 class EventStore:
@@ -44,6 +44,8 @@ class EventStore:
                     json.dumps(event.to_dict(), ensure_ascii=False, separators=(",", ":")),
                 ),
             )
+            if cursor.rowcount > 0:
+                self._index_tags(event.id, event.tags)
             if event.kind == 5:
                 self._record_deletions(event)
             self.connection.commit()
@@ -51,26 +53,51 @@ class EventStore:
 
     def query(self, filters: list[dict[str, Any]]) -> list[StoredEvent]:
         limit = filter_limit(filters)
+        matches: dict[str, StoredEvent] = {}
         with self.lock:
-            rows = self.connection.execute(
-                """
-                SELECT events.raw_json
-                FROM events
-                LEFT JOIN deletions
-                  ON deletions.event_id = events.id
-                 AND deletions.deleted_by = events.pubkey
-                WHERE deletions.event_id IS NULL
-                ORDER BY created_at DESC, id DESC
-                """
-            ).fetchall()
-        matches = []
-        for row in rows:
-            event = StoredEvent.from_dict(json.loads(row["raw_json"]))
-            if matches_any_filter(event, filters):
-                matches.append(event)
-            if len(matches) >= limit:
-                break
-        return matches
+            for relay_filter in filters:
+                clauses = ["NOT EXISTS (SELECT 1 FROM deletions d WHERE d.event_id = events.id AND d.deleted_by = events.pubkey)"]
+                parameters: list[Any] = []
+                for key, column in (("ids", "id"), ("authors", "pubkey")):
+                    if key not in relay_filter:
+                        continue
+                    prefixes = relay_filter[key]
+                    conditions = []
+                    for prefix in prefixes:
+                        if len(prefix) == 64:
+                            conditions.append(f"{column} = ?")
+                            parameters.append(prefix)
+                        else:
+                            conditions.append(f"({column} >= ? AND {column} < ?)")
+                            parameters.extend([prefix, prefix + "\U0010ffff"])
+                    clauses.append("(" + " OR ".join(conditions) + ")" if conditions else "0")
+                if "kinds" in relay_filter:
+                    values = relay_filter["kinds"]
+                    clauses.append("kind IN (" + ",".join("?" for _ in values) + ")")
+                    parameters.extend(values)
+                for key, operator in (("since", ">="), ("until", "<=")):
+                    if key in relay_filter:
+                        clauses.append(f"created_at {operator} ?")
+                        parameters.append(relay_filter[key])
+                for key, values in relay_filter.items():
+                    if key.startswith("#"):
+                        clauses.append("id IN (SELECT event_id FROM event_tags WHERE name = ? AND value IN (" + ",".join("?" for _ in values) + "))")
+                        parameters.extend([key[1:], *values])
+                rows = self.connection.execute(
+                    "SELECT raw_json FROM events WHERE " + " AND ".join(clauses)
+                    + " ORDER BY created_at DESC, id DESC LIMIT ?",
+                    [*parameters, limit],
+                )
+                for row in rows:
+                    event = StoredEvent.from_dict(json.loads(row["raw_json"]))
+                    matches[event.id] = event
+        return sorted(matches.values(), key=lambda event: (event.created_at, event.id), reverse=True)[:limit]
+
+    def _index_tags(self, event_id: str, tags: list[list[str]]) -> None:
+        self.connection.executemany(
+            "INSERT OR IGNORE INTO event_tags (event_id, name, value) VALUES (?, ?, ?)",
+            [(event_id, tag[0], tag[1]) for tag in tags if len(tag) >= 2],
+        )
 
     def _migrate(self) -> None:
         with self.lock:
@@ -103,6 +130,22 @@ class EventStore:
                   ON deletions (deleted_by);
                 """
             )
+            # Backfill once, transactionally, so existing relay data is retained.
+            # A failed migration rolls back the table and is retried next startup.
+            with self.connection:
+                self.connection.execute("BEGIN")
+                exists = self.connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='event_tags'"
+                ).fetchone()
+                self.connection.execute(
+                    "CREATE TABLE IF NOT EXISTS event_tags (event_id TEXT NOT NULL, name TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (name, value, event_id))"
+                )
+                if not exists:
+                    for row in self.connection.execute("SELECT id, tags_json FROM events"):
+                        self._index_tags(row["id"], json.loads(row["tags_json"]))
+                self.connection.execute("CREATE INDEX IF NOT EXISTS idx_events_order ON events(created_at DESC, id DESC)")
+                self.connection.execute("CREATE INDEX IF NOT EXISTS idx_events_kind_order ON events(kind, created_at DESC, id DESC)")
+                self.connection.execute("CREATE INDEX IF NOT EXISTS idx_events_author_order ON events(pubkey, created_at DESC, id DESC)")
             self.connection.commit()
 
     def _record_deletions(self, event: StoredEvent) -> None:

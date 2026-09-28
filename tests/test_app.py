@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import asyncio
+import threading
+from unittest.mock import AsyncMock
+import httpx
 from pathlib import Path
 
 import pytest
@@ -13,6 +17,38 @@ from spurline.identity import fips_ipv6_address, service_npub
 from spurline.main import create_app
 
 SERVICE_NSEC = "11" * 32
+
+
+def test_slow_query_does_not_block_health(tmp_path):
+    app = create_test_app(tmp_path)
+    entered = threading.Event()
+    release = threading.Event()
+    def slow_query(filters):
+        entered.set()
+        release.wait(timeout=3)
+        return []
+    app.state.store.query = slow_query
+    async def run():
+        websocket = AsyncMock()
+        app.state.relay.connections[websocket] = {}
+        task = asyncio.create_task(app.state.relay._handle_req(websocket, ["REQ", "test", {}]))
+        try:
+            for _ in range(100):
+                if entered.is_set():
+                    break
+                await asyncio.sleep(0.005)
+            assert entered.is_set()
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                response = await asyncio.wait_for(client.get("/health"), timeout=0.5)
+            assert response.status_code == 200
+            assert not task.done(), "The health response must arrive while the query is blocked"
+        finally:
+            release.set()
+            await task
+    try:
+        asyncio.run(run())
+    finally:
+        app.state.store.close()
 SERVICE_NSEC_BECH32 = (
     "nsec1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs4rm7hz"
 )
