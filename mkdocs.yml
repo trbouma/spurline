@@ -34,6 +34,7 @@ nav:
   - Understand Spurline:
       - Why Spurline?: why-spurline.md
       - Runtime Model: runtime-model.md
+      - Storage Backends: storage-backends.md
       - Selective Relay Synchronization: selective-relay-synchronization.md
   - Operate Spurline:
       - Getting Started: getting-started.md

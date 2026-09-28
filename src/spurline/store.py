@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .events import StoredEvent
-from .filters import filter_limit
+from .filters import filter_limit, validate_filter_bounds
 
 
 class EventStore:
@@ -26,7 +26,7 @@ class EventStore:
             self.connection.close()
 
     def save(self, event: StoredEvent) -> bool:
-        with self.lock:
+        with self.lock, self.connection:
             cursor = self.connection.execute(
                 """
                 INSERT OR IGNORE INTO events
@@ -52,6 +52,7 @@ class EventStore:
             return cursor.rowcount > 0
 
     def query(self, filters: list[dict[str, Any]]) -> list[StoredEvent]:
+        validate_filter_bounds(filters)
         limit = filter_limit(filters)
         matches: dict[str, StoredEvent] = {}
         with self.lock:
@@ -63,10 +64,13 @@ class EventStore:
                         continue
                     prefixes = relay_filter[key]
                     conditions = []
+                    exact = [prefix for prefix in prefixes if len(prefix) == 64]
+                    if exact:
+                        conditions.append(f"{column} IN (" + ",".join("?" for _ in exact) + ")")
+                        parameters.extend(exact)
                     for prefix in prefixes:
                         if len(prefix) == 64:
-                            conditions.append(f"{column} = ?")
-                            parameters.append(prefix)
+                            continue
                         else:
                             conditions.append(f"({column} >= ? AND {column} < ?)")
                             parameters.extend([prefix, prefix + "\U0010ffff"])

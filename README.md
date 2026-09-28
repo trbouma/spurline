@@ -85,6 +85,10 @@ for image publishing, ARM64 support, reverse-proxy guidance, and configuration.
 
 ## Query performance and upgrades
 
+The relay uses an async storage interface with SQLite as its default backend.
+See [Storage backends](docs/storage-backends.md) for query limits, failure handling,
+and the planned PostgreSQL extension path.
+
 Relay queries apply author, kind, time, ID-prefix, and tag filters in SQLite
 before loading event content. Results remain bounded by the existing relay
 limit. Database reads and writes run in worker threads so they do not block

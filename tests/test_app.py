@@ -19,6 +19,46 @@ from spurline.main import create_app
 SERVICE_NSEC = "11" * 32
 
 
+def test_unexpected_handler_failure_removes_connection(tmp_path):
+    app = create_test_app(tmp_path)
+    app.state.relay.handle_message = AsyncMock(side_effect=RuntimeError("unexpected"))
+    with TestClient(app) as client:
+        with pytest.raises(RuntimeError, match="unexpected"):
+            with client.websocket_connect("/") as websocket:
+                websocket.send_json(["REQ", "probe", {}])
+                websocket.receive_json()
+        assert not app.state.relay.connections
+
+
+@pytest.mark.parametrize("relay_filter", [
+    {"since": 2**64}, {"until": -(2**64)}, {"kinds": [2**64]},
+    {"authors": ["a"] * 129}, {"ids": ["a" * 64] * 2001},
+])
+def test_invalid_filter_keeps_connection_usable(tmp_path, relay_filter):
+    app = create_test_app(tmp_path)
+    with TestClient(app) as client:
+        with client.websocket_connect("/") as websocket:
+            websocket.send_json(["REQ", "bad", relay_filter])
+            assert websocket.receive_json()[:2] == ["CLOSED", "bad"]
+            websocket.send_json(["REQ", "good", {}])
+            assert websocket.receive_json() == ["EOSE", "good"]
+    assert not app.state.relay.connections
+
+
+def test_storage_failure_closes_subscription_only(tmp_path):
+    from spurline.storage import StorageError
+    app = create_test_app(tmp_path)
+    app.state.store.query = AsyncMock(side_effect=[StorageError("unavailable"), []])
+    with TestClient(app) as client:
+        with client.websocket_connect("/") as websocket:
+            websocket.send_json(["REQ", "bad", {}])
+            assert websocket.receive_json()[:2] == ["CLOSED", "bad"]
+            assert all("bad" not in subs for subs in app.state.relay.connections.values())
+            websocket.send_json(["REQ", "good", {}])
+            assert websocket.receive_json() == ["EOSE", "good"]
+    assert not app.state.relay.connections
+
+
 def test_slow_query_does_not_block_health(tmp_path):
     app = create_test_app(tmp_path)
     entered = threading.Event()
@@ -27,7 +67,7 @@ def test_slow_query_does_not_block_health(tmp_path):
         entered.set()
         release.wait(timeout=3)
         return []
-    app.state.store.query = slow_query
+    app.state.store._store.query = slow_query
     async def run():
         websocket = AsyncMock()
         app.state.relay.connections[websocket] = {}
@@ -48,7 +88,7 @@ def test_slow_query_does_not_block_health(tmp_path):
     try:
         asyncio.run(run())
     finally:
-        app.state.store.close()
+        asyncio.run(app.state.store.close())
 SERVICE_NSEC_BECH32 = (
     "nsec1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs4rm7hz"
 )

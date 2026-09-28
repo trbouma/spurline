@@ -6,6 +6,24 @@ from spurline.filters import matches_any_filter, filter_limit
 import pytest
 
 
+def test_failed_tag_write_rolls_back_event(tmp_path, monkeypatch):
+    import sqlite3
+    store = EventStore(tmp_path / "rollback.db")
+    event = _event(id="a" * 64, pubkey="b" * 64, kind=1, created_at=1)
+    original = store._index_tags
+    def fail(*args):
+        raise sqlite3.OperationalError("simulated write failure")
+    monkeypatch.setattr(store, "_index_tags", fail)
+    try:
+        with pytest.raises(sqlite3.OperationalError):
+            store.save(event)
+        assert store.query([{}]) == []
+        monkeypatch.setattr(store, "_index_tags", original)
+        assert store.save(event)
+    finally:
+        store.close()
+
+
 def test_same_author_deletion_hides_target_event(tmp_path) -> None:
     store = EventStore(tmp_path / "spurline.sqlite3")
     event = _event(id="1" * 64, pubkey="a" * 64, kind=37375, created_at=100)

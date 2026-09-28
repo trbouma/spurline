@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -13,16 +14,18 @@ from fastapi.responses import FileResponse, HTMLResponse
 from . import __version__
 from .config import Settings
 from .events import EventValidationError, StoredEvent, validate_event
-from .filters import matches_any_filter, normalize_filters
+from .filters import FilterValidationError, matches_any_filter, normalize_filters
 from .homepage import render_homepage
 from .identity import bind_service_identity
-from .store import EventStore
+from .storage import EventStorage, SQLiteStorage, StorageError
+
+logger = logging.getLogger(__name__)
 
 SubscriptionMap = dict[str, list[dict[str, Any]]]
 
 
 class RelayService:
-    def __init__(self, store: EventStore, *, verify_signatures: bool = True) -> None:
+    def __init__(self, store: EventStorage, *, verify_signatures: bool = True) -> None:
         self.store = store
         self.verify_signatures = verify_signatures
         self.connections: dict[WebSocket, SubscriptionMap] = {}
@@ -69,7 +72,12 @@ class RelayService:
             await websocket.send_json(["OK", event_id, False, f"invalid: {exc}"])
             return
 
-        inserted = await asyncio.to_thread(self.store.save, event)
+        try:
+            inserted = await self.store.save(event)
+        except StorageError:
+            logger.exception("Event storage failed")
+            await websocket.send_json(["OK", event.id, False, "error: storage could not confirm publication"])
+            return
         if not inserted:
             await websocket.send_json(["OK", event.id, True, "duplicate: already have event"])
             return
@@ -83,10 +91,21 @@ class RelayService:
             return
 
         subscription_id = payload[1]
-        filters = normalize_filters(payload[2:])
+        self.connections[websocket].pop(subscription_id, None)
+        try:
+            filters = normalize_filters(payload[2:])
+        except FilterValidationError as exc:
+            await websocket.send_json(["CLOSED", subscription_id, f"invalid: {exc}"])
+            return
         self.connections[websocket][subscription_id] = filters
 
-        events = await asyncio.to_thread(self.store.query, filters)
+        try:
+            events = await self.store.query(filters)
+        except StorageError:
+            logger.exception("Subscription query failed")
+            self.connections[websocket].pop(subscription_id, None)
+            await websocket.send_json(["CLOSED", subscription_id, "error: storage query failed"])
+            return
         for event in events:
             await websocket.send_json(["EVENT", subscription_id, event.to_dict()])
         await websocket.send_json(["EOSE", subscription_id])
@@ -107,9 +126,9 @@ class RelayService:
             await asyncio.gather(*sends, return_exceptions=True)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, store: EventStorage | None = None) -> FastAPI:
     configured = settings or Settings.from_env()
-    store = EventStore(configured.database_path)
+    store = store if store is not None else SQLiteStorage(configured.database_path)
     relay = RelayService(store, verify_signatures=configured.verify_signatures)
 
     @asynccontextmanager
@@ -120,7 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             yield
         finally:
-            app.state.store.close()
+            await app.state.store.close()
 
     app = FastAPI(
         title="Spurline",
@@ -196,6 +215,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 message = await websocket.receive_text()
                 await relay.handle_message(websocket, message)
         except WebSocketDisconnect:
+            pass
+        finally:
             relay.disconnect(websocket)
 
     return app
