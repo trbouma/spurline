@@ -36,6 +36,8 @@ nav:
       - Runtime Model: runtime-model.md
       - Storage Backends: storage-backends.md
       - Selective Relay Synchronization: selective-relay-synchronization.md
+      - Optional Post Quantum Anchors: post-quantum-anchor-events.md
+      - Append Only Evidence Policy: append-only-evidence-policy.md
   - Operate Spurline:
       - Getting Started: getting-started.md
       - Container Deployment: container-deployment.md
