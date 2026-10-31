@@ -5,9 +5,13 @@ verified kind 1415 and 1416 events. This is opt-in and currently SQLite-only.
 Receipts are published to the local relay and its live subscribers. External
 receipt fan-out and historical backfill are not implemented.
 
-Two clock modes are available. `bounded` (the unchanged default) issues version 1
+For the simplest setup, use [system clock witnessing](system-clock-witness-setup.md):
+no monitor or health file, and no synchronization claim.
+
+Three clock modes are available. `bounded` (the unchanged default) issues version 1
 receipts with a numeric uncertainty bound. `operational` issues version 2 receipts
 with explicit unspecified accuracy and requires an approved operational policy.
+`system` issues version 3 receipts using local time alone under its own approved policy.
 For ordinary timesyncd-backed timestamps, use the
 [operational setup guide](operational-witness-setup.md), bundled host monitor,
 and public policy. Existing deployments do not switch modes automatically.

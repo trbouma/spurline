@@ -25,10 +25,12 @@ class Settings:
     witness_max_delay_seconds: int = 60
 
     def __post_init__(self) -> None:
-        if self.witness_clock_mode not in {"bounded", "operational"}:
-            raise ValueError("SPURLINE_WITNESS_CLOCK_MODE must be bounded or operational")
-        if self.witness_enabled and (not self.service_nsec or not self.witness_clock_file):
-            raise ValueError("witnessing requires a service key and SPURLINE_WITNESS_CLOCK_FILE")
+        if self.witness_clock_mode not in {"bounded", "operational", "system"}:
+            raise ValueError("SPURLINE_WITNESS_CLOCK_MODE must be bounded, operational or system")
+        if self.witness_enabled and not self.service_nsec:
+            raise ValueError("witnessing requires a service key")
+        if self.witness_enabled and self.witness_clock_mode != "system" and not self.witness_clock_file:
+            raise ValueError("monitored witnessing requires SPURLINE_WITNESS_CLOCK_FILE")
         if self.witness_queue_limit < 1 or self.witness_max_delay_seconds < 1:
             raise ValueError("witness queue and delay limits must be positive")
         if self.service_management not in SERVICE_MANAGEMENT_MODES:
@@ -37,6 +39,10 @@ class Settings:
             raise ValueError("mainstay-managed Spurline requires SPURLINE_SERVICE_NSEC")
         if self.service_nsec:
             service_npub(self.service_nsec)
+
+    @property
+    def witness_receipt_version(self) -> int:
+        return {"bounded": 1, "operational": 2, "system": 3}[self.witness_clock_mode]
 
     @property
     def service_npub(self) -> str | None:

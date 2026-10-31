@@ -270,10 +270,10 @@ def relay_info(settings: Settings, *, status: dict[str, Any] | None = None) -> d
         "version": __version__,
         "automatic_witness": {"configured": settings.witness_enabled,
                               "clock_mode": settings.witness_clock_mode,
-                              "receipt_version": 2 if settings.witness_clock_mode == 'operational' else 1,
+                              "receipt_version": settings.witness_receipt_version,
                               "publication": "local", "receipt_kind": 1418,
                               "status_url": "/v1/witness-status/{signed_event_digest}",
-                              "clock_health_required": True},
+                              "clock_health_required": settings.witness_clock_mode != 'system'},
         "witness_authorization": {key: value for key, value in witness.items()
                                   if key not in {"evidence", "history", "pending", "pending_status", "local_controls"}},
         "service_identity": {

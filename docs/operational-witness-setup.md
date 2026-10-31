@@ -1,5 +1,8 @@
 # Operational Witness Setup
 
+This is the optional monitored mode. For the simpler setup without host services,
+use [system clock witnessing](system-clock-witness-setup.md) instead.
+
 Use this mode for ordinary NTP-backed observations without a numeric UTC-accuracy
 promise. The bundled timesyncd adapter reports synchronization status only.
 The existing bounded mode and version 1 receipts are unchanged. Witnessing

@@ -30,7 +30,7 @@ def signed_event_digest(subject):
 
 
 def receipt_tags(subject, version=1):
-    if type(version) is not int or version not in (1, 2):
+    if type(version) is not int or version not in (1, 2, 3):
         raise CommissioningError("unsupported receipt version")
     return [["e", subject["id"]], ["p", subject["pubkey"]],
             ["k", str(subject["kind"])], ["t", f"spurline-observation-receipt-v{version}"]]
@@ -58,9 +58,9 @@ def verify_receipt(receipt, subject):
     if not isinstance(body, dict):
         raise CommissioningError("receipt body must be an object")
     version = body.get("schema_version")
-    if type(version) is not int or version not in (1, 2):
+    if type(version) is not int or version not in (1, 2, 3):
         raise CommissioningError("unsupported receipt version")
-    if version == 2:
+    if version in (2, 3):
         fields |= {"clock_accuracy", "clock_basis"}
     if set(body) != fields or canonical_json(body) != receipt["content"]:
         raise CommissioningError("receipt fields or canonical encoding do not match profile")
@@ -79,8 +79,8 @@ def verify_receipt(receipt, subject):
         if body['observed_at_ms'] + uncertainty > MAX_SAFE_INTEGER:
             raise CommissioningError("inconsistent receipt times")
     elif (uncertainty is not None or body['clock_accuracy'] != 'unspecified'
-          or body['clock_basis'] != 'ntp-synchronized-system-clock'):
-        raise CommissioningError("v2 requires explicit unspecified clock accuracy")
+          or body['clock_basis'] != ('system-clock' if version == 3 else 'ntp-synchronized-system-clock')):
+        raise CommissioningError("receipt requires explicit unspecified accuracy and matching clock basis")
     if (body["observed_at_ms"] > body["issued_at_ms"]
             or not isinstance(receipt["created_at"], int) or isinstance(receipt["created_at"], bool)
             or receipt["created_at"] != body["issued_at_ms"] // 1000):

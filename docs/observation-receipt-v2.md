@@ -2,6 +2,9 @@
 
 Version 2 adds an explicit unspecified-accuracy profile to experimental kind
 1418. Version 1 remains frozen and continues to require numeric uncertainty.
+The separate [version 3 system-clock mode](system-clock-witness-setup.md#enable-and-check)
+does not claim synchronization; it uses a distinct version and marker rather than
+changing the meaning of existing v2 receipts.
 This is not a registered NIP. Consumers must recognize the version explicitly;
 unsupported versions must not be treated as version 1.
 

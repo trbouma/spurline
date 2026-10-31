@@ -47,6 +47,8 @@ nav:
       - Witness Operator Runbook: witness-operator-runbook.md
       - Operator Signing CLI: operator-signing.md
       - Automatic Witness Operation: automatic-witness-operation.md
+      - Simple System Clock Witnessing: system-clock-witness-setup.md
+      - System Clock Witness Policy: policies/system-clock-witness-v1.md
       - Operational Witness Setup: operational-witness-setup.md
       - Operational Witness Policy: policies/operational-witness-v1.md
       - Witness Authorization Lifecycle: witness-lifecycle.md

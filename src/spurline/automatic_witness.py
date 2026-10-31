@@ -16,6 +16,7 @@ from .witness import WitnessAuthorization
 
 logger = logging.getLogger(__name__)
 OPERATIONAL_POLICY_MARKER = 'Spurline-Clock-Profile: operational-v1'
+SYSTEM_POLICY_MARKER = 'Spurline-Clock-Profile: system-v1'
 
 
 class ClockUnavailable(ValueError):
@@ -23,7 +24,7 @@ class ClockUnavailable(ValueError):
 
 
 class WitnessClock:
-    """Trust an operator-managed time monitor; fail closed on stale/unknown time.
+    """Sample local time, optionally gated by an operator-managed time monitor.
 
     The monitor must atomically replace a small JSON file. This is an explicit
     trust boundary, not an NTP implementation or a proof of accurate time.
@@ -31,7 +32,7 @@ class WitnessClock:
 
     def __init__(self, path, mode='bounded'):
         self.path = path
-        if mode not in ('bounded', 'operational'):
+        if mode not in ('bounded', 'operational', 'system'):
             raise ValueError('unsupported clock mode')
         self.mode = mode
         self.previous = (time.time(), time.monotonic())
@@ -45,6 +46,9 @@ class WitnessClock:
             self.failed = True
         if self.failed:
             raise ClockUnavailable("clock discontinuity; restart after correcting time")
+        if self.mode == 'system':
+            # No file access or synchronization claim in this mode.
+            return int(wall * 1000), None
         try:
             with self.path.open('rb') as stream:
                 data = json.loads(stream.read(4097))
@@ -84,17 +88,19 @@ class AutomaticWitness:
     def _within(view, now, uncertainty):
         grant = json.loads(view['evidence']['authorization']['content'])
         if uncertainty is None:
-            # Operational mode checks the LOCAL clock only. This is not an
+            # Unspecified-accuracy modes check the LOCAL clock only. This is not an
             # uncertainty interval and must never be presented as UTC assurance.
             return max(grant['issued_at'], view['not_before']) * 1000 <= now < view['not_after'] * 1000
         return (now - uncertainty >= max(grant['issued_at'], view['not_before']) * 1000
                 and now + uncertainty < view['not_after'] * 1000)
 
     def _policy_allows_mode(self, view):
-        operational_policy = OPERATIONAL_POLICY_MARKER in view['evidence'].get('policy', '').splitlines()
-        operational_mode = self.settings.witness_clock_mode == 'operational'
-        return (operational_policy == operational_mode
-                and (not operational_mode or self.settings.witness_max_delay_seconds <= 60))
+        lines = view['evidence'].get('policy', '').splitlines()
+        markers = {line for line in lines if line.startswith('Spurline-Clock-Profile:')}
+        mode = self.settings.witness_clock_mode
+        expected = {'bounded': set(), 'operational': {OPERATIONAL_POLICY_MARKER},
+                    'system': {SYSTEM_POLICY_MARKER}}[mode]
+        return markers == expected and (mode == 'bounded' or self.settings.witness_max_delay_seconds <= 60)
 
     def accept(self, event):
         if event.kind not in (1415, 1416):
@@ -115,7 +121,7 @@ class AutomaticWitness:
             except (CommissioningError, ClockUnavailable):
                 return self.store.save(event)
             job = dict(subject=event.to_dict(), signed_event_digest=digest,
-                       receipt_version=2 if self.settings.witness_clock_mode == 'operational' else 1,
+                       receipt_version=self.settings.witness_receipt_version,
                        observed_at_ms=now, clock_uncertainty_ms=uncertainty,
                        authorization_event_id=view['authorization_event_id'],
                        witness_policy_digest=view['policy_sha256'],
@@ -135,7 +141,7 @@ class AutomaticWitness:
                 now, uncertainty = self.clock.sample()
                 if (not view['witnessing_permitted']
                         or not self._policy_allows_mode(view)
-                        or job.get('receipt_version', 1) != (2 if self.settings.witness_clock_mode == 'operational' else 1)
+                        or job.get('receipt_version', 1) != self.settings.witness_receipt_version
                         or view['authorization_event_id'] != job['authorization_event_id']
                         or job['witness_pubkey'] != Keys(priv_k=self.settings.service_nsec).public_key_hex()
                         or not self._within(view, now, uncertainty)
@@ -155,8 +161,9 @@ class AutomaticWitness:
             body.update(schema=RECEIPT_SCHEMA, schema_version=version, subject_profile=SUBJECT_PROFILE,
                         event_id=subject['id'], issued_at_ms=now,
                         validation='event-id-and-signature', observation_mode='live')
-            if version == 2:
-                body.update(clock_accuracy='unspecified', clock_basis='ntp-synchronized-system-clock')
+            if version in (2, 3):
+                body.update(clock_accuracy='unspecified', clock_basis=(
+                    'system-clock' if version == 3 else 'ntp-synchronized-system-clock'))
             event = Event(kind=WITNESS_KIND, created_at=now // 1000,
                           content=canonical_json(body), tags=receipt_tags(subject, version))
             event.sign(Keys(priv_k=self.settings.service_nsec))
