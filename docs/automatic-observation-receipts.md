@@ -7,6 +7,12 @@ description: Proposed relay-signed witnesses for OpenETR events, discoverable by
 
 ## Status and decision
 
+The bounded-time examples below describe version 1. The separate
+[operational version 2](observation-receipt-v2.md) explicitly reports unspecified
+accuracy, uses a v2 discovery marker, and does not support numeric UTC bounds.
+See [operational setup](operational-witness-setup.md) for the timesyncd adapter
+and policy. Do not coerce its null uncertainty to zero.
+
 Experimental local implementation, 31 October 2026. Receipt generation, clock-health
 gating, and durable SQLite jobs are implemented behind an opt-in setting; see
 [Automatic Witness Operation](automatic-witness-operation.md) for the implemented
@@ -246,7 +252,7 @@ A receipt is additional evidence, not a replacement for its subject. Copying a
 receipt to another relay preserves its witness signature but does not make the
 hosting relay a second witness. No global persistence guarantee follows.
 
-With an accepted witness and clock policy, the signed subject existed no later
+For version 1 with an accepted bounded-clock policy, the signed subject existed no later
 than the upper end of the attested observation interval:
 `observed_at_ms + clock_uncertainty_ms`. This is not its exact creation time or
 proof of when it was first published anywhere.
@@ -278,7 +284,7 @@ winning notice branch or manufacture authority for a transition.
 - Normal relay traffic remains functional and bounded under receipt-worker
   failure and load; `OK` is never represented as a timestamp receipt.
 
-The experimental kind, version-1 receipt format, and signed authorization
-lifecycle are now defined. The next implementation milestone is clock-health
-checks, transactional jobs, and local receipt publication. External fan-out and independent time anchoring can
+The experimental kind, version-1 and version-2 receipt formats, and signed authorization
+lifecycle are now defined. Clock-health gates, transactional jobs, and local
+receipt publication are implemented. External fan-out and independent time anchoring can
 follow without changing the meaning of a local observation.

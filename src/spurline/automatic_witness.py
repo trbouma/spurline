@@ -15,6 +15,7 @@ from .receipts import (RECEIPT_SCHEMA, SUBJECT_PROFILE, WITNESS_KIND,
 from .witness import WitnessAuthorization
 
 logger = logging.getLogger(__name__)
+OPERATIONAL_POLICY_MARKER = 'Spurline-Clock-Profile: operational-v1'
 
 
 class ClockUnavailable(ValueError):
@@ -28,8 +29,11 @@ class WitnessClock:
     trust boundary, not an NTP implementation or a proof of accurate time.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, mode='bounded'):
         self.path = path
+        if mode not in ('bounded', 'operational'):
+            raise ValueError('unsupported clock mode')
+        self.mode = mode
         self.previous = (time.time(), time.monotonic())
         self.failed = False
 
@@ -47,9 +51,18 @@ class WitnessClock:
             now = int(wall * 1000)
             checked, uncertainty = data['checked_at_ms'], data['uncertainty_ms']
             if (data['synchronized'] is not True or type(checked) is not int
-                    or type(uncertainty) is not int or not 0 <= uncertainty <= 1000
                     or not 0 <= now - checked <= 30000):
                 raise ValueError("unhealthy clock")
+            if self.mode == 'bounded':
+                if type(uncertainty) is not int or not 0 <= uncertainty <= 1000:
+                    raise ValueError('bounded mode requires a numeric uncertainty')
+            else:
+                last_sync = data['last_sync_at_ms']
+                if (data.get('mode') != 'operational' or uncertainty is not None
+                        or data.get('source') != 'systemd-timesyncd'
+                        or type(last_sync) is not int or not 0 <= checked - last_sync <= 7200000
+                        or not 0 <= now - last_sync <= 7200000):
+                    raise ValueError('invalid operational clock health')
             return now, uncertainty
         except (OSError, ValueError, TypeError, KeyError) as exc:
             raise ClockUnavailable("fresh synchronized clock evidence unavailable") from exc
@@ -59,7 +72,7 @@ class AutomaticWitness:
     def __init__(self, settings, store):
         self.settings, self.store = settings, store
         self.authority = WitnessAuthorization(settings)
-        self.clock = WitnessClock(settings.witness_clock_file)
+        self.clock = WitnessClock(settings.witness_clock_file, settings.witness_clock_mode)
         self.lock = threading.Lock()
         self.stopping = asyncio.Event()
 
@@ -70,8 +83,18 @@ class AutomaticWitness:
     @staticmethod
     def _within(view, now, uncertainty):
         grant = json.loads(view['evidence']['authorization']['content'])
+        if uncertainty is None:
+            # Operational mode checks the LOCAL clock only. This is not an
+            # uncertainty interval and must never be presented as UTC assurance.
+            return max(grant['issued_at'], view['not_before']) * 1000 <= now < view['not_after'] * 1000
         return (now - uncertainty >= max(grant['issued_at'], view['not_before']) * 1000
                 and now + uncertainty < view['not_after'] * 1000)
+
+    def _policy_allows_mode(self, view):
+        operational_policy = OPERATIONAL_POLICY_MARKER in view['evidence'].get('policy', '').splitlines()
+        operational_mode = self.settings.witness_clock_mode == 'operational'
+        return (operational_policy == operational_mode
+                and (not operational_mode or self.settings.witness_max_delay_seconds <= 60))
 
     def accept(self, event):
         if event.kind not in (1415, 1416):
@@ -86,11 +109,13 @@ class AutomaticWitness:
                 view = self._view(db)
                 now, uncertainty = self.clock.sample()
                 if (not view['witnessing_permitted'] or event.kind not in view['subject_kinds']
+                        or not self._policy_allows_mode(view)
                         or not self._within(view, now, uncertainty)):
                     return self.store.save(event)
             except (CommissioningError, ClockUnavailable):
                 return self.store.save(event)
             job = dict(subject=event.to_dict(), signed_event_digest=digest,
+                       receipt_version=2 if self.settings.witness_clock_mode == 'operational' else 1,
                        observed_at_ms=now, clock_uncertainty_ms=uncertainty,
                        authorization_event_id=view['authorization_event_id'],
                        witness_policy_digest=view['policy_sha256'],
@@ -109,6 +134,8 @@ class AutomaticWitness:
                 view = self._view(db)
                 now, uncertainty = self.clock.sample()
                 if (not view['witnessing_permitted']
+                        or not self._policy_allows_mode(view)
+                        or job.get('receipt_version', 1) != (2 if self.settings.witness_clock_mode == 'operational' else 1)
                         or view['authorization_event_id'] != job['authorization_event_id']
                         or job['witness_pubkey'] != Keys(priv_k=self.settings.service_nsec).public_key_hex()
                         or not self._within(view, now, uncertainty)
@@ -124,11 +151,14 @@ class AutomaticWitness:
             subject = job['subject']
             body = {key: job[key] for key in ('signed_event_digest', 'observed_at_ms',
                     'clock_uncertainty_ms', 'authorization_event_id', 'witness_policy_digest')}
-            body.update(schema=RECEIPT_SCHEMA, schema_version=1, subject_profile=SUBJECT_PROFILE,
+            version = job.get('receipt_version', 1)
+            body.update(schema=RECEIPT_SCHEMA, schema_version=version, subject_profile=SUBJECT_PROFILE,
                         event_id=subject['id'], issued_at_ms=now,
                         validation='event-id-and-signature', observation_mode='live')
+            if version == 2:
+                body.update(clock_accuracy='unspecified', clock_basis='ntp-synchronized-system-clock')
             event = Event(kind=WITNESS_KIND, created_at=now // 1000,
-                          content=canonical_json(body), tags=receipt_tags(subject))
+                          content=canonical_json(body), tags=receipt_tags(subject, version))
             event.sign(Keys(priv_k=self.settings.service_nsec))
             receipt = event.data()
             verify_receipt(receipt, subject)
@@ -139,6 +169,7 @@ class AutomaticWitness:
         while not self.stopping.is_set():
             delay = .25
             try:
+                await asyncio.to_thread(self.check_clock)
                 rows = await asyncio.to_thread(self.store.witness_rows)
                 for row in rows:
                     if self.stopping.is_set():
@@ -158,6 +189,15 @@ class AutomaticWitness:
             try:
                 await asyncio.wait_for(self.stopping.wait(), delay)
             except TimeoutError:
+                pass
+
+    def check_clock(self):
+        # Detect steps even while no subjects are arriving. Lost synchronization
+        # is checked again on every acquisition and issuance.
+        with self.lock:
+            try:
+                self.clock.sample()
+            except ClockUnavailable:
                 pass
 
     def status(self, digest):

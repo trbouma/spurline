@@ -29,6 +29,10 @@ The outer object is a standard signed event whose author is the witnessing
 relay. This schematic uses experimental kind 1418 and placeholder IDs and
 signatures. It is not a publishable test vector; see the
 [frozen profile and fixture](observation-receipt-v1.md) for executable wire checks.
+This example is version 1. [Version 2](observation-receipt-v2.md) instead explicitly
+reports unspecified accuracy; its null uncertainty must never be treated as zero.
+Queries using the v1 `t` marker alone exclude v2 receipts. Query by kind and `e`
+reference to discover both, then validate each version explicitly.
 
 ```javascript
 {
@@ -144,11 +148,15 @@ Retrieve dependencies from configured relays or supplied evidence packages.
 Treat any advertised service URL as untrusted input subject to the application's
 network policy, not an instruction to fetch arbitrary destinations.
 
-The proposed accepted time conclusion is an upper bound: the signed subject
+For a recognized version 1 bounded-time receipt, the proposed accepted time conclusion is an upper bound: the signed subject
 existed no later than `observed_at_ms + clock_uncertainty_ms`, conditional on
 the recognized witness and policy. Preserve the stated uncertainty. This does
 not establish exact creation time, content truth, legal authority, or the
 consequential effect of the OpenETR event.
+
+Version 2 does not support that numeric upper-bound calculation. Report its
+observation time as operator-asserted operational time with unspecified accuracy;
+do not use it alone to prove strict UTC deadlines or ordering across relays.
 
 ## Multiple witnesses and duplicate copies
 
@@ -198,8 +206,9 @@ govern anchors, notices, missing links, and conflicting branches.
 ## Integration milestones
 
 The [receipt profile](observation-receipt-v1.md) and cryptographic fixture are
-now defined. Before apps can rely on this flow, implement generation, clock
-checks, publication, and application-level lifecycle and trust evaluation. Test one witness, multiple witnesses,
+now defined, alongside the operational version 2 profile. Local generation,
+clock gates, and publication are implemented. Before apps rely on this flow,
+implement application-level lifecycle and trust evaluation. Test one witness, multiple witnesses,
 duplicate hosting, missing authorization, invalid signatures, mismatched subject
 signatures, expiry, delayed publication, backfill, and partial relay failure.
 

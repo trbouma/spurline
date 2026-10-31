@@ -269,6 +269,8 @@ def relay_info(settings: Settings, *, status: dict[str, Any] | None = None) -> d
         "software": "spurline",
         "version": __version__,
         "automatic_witness": {"configured": settings.witness_enabled,
+                              "clock_mode": settings.witness_clock_mode,
+                              "receipt_version": 2 if settings.witness_clock_mode == 'operational' else 1,
                               "publication": "local", "receipt_kind": 1418,
                               "status_url": "/v1/witness-status/{signed_event_digest}",
                               "clock_health_required": True},

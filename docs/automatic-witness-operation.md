@@ -5,6 +5,13 @@ verified kind 1415 and 1416 events. This is opt-in and currently SQLite-only.
 Receipts are published to the local relay and its live subscribers. External
 receipt fan-out and historical backfill are not implemented.
 
+Two clock modes are available. `bounded` (the unchanged default) issues version 1
+receipts with a numeric uncertainty bound. `operational` issues version 2 receipts
+with explicit unspecified accuracy and requires an approved operational policy.
+For ordinary timesyncd-backed timestamps, use the
+[operational setup guide](operational-witness-setup.md), bundled host monitor,
+and public policy. Existing deployments do not switch modes automatically.
+
 ## Enable the worker
 
 First complete [commissioning and witness authorization](witness-operator-runbook.md).
@@ -16,6 +23,7 @@ Configure:
 ```dotenv
 SPURLINE_WITNESS_ENABLED=true
 SPURLINE_WITNESS_CLOCK_FILE=/run/spurline-clock/health.json
+SPURLINE_WITNESS_CLOCK_MODE=bounded
 SPURLINE_WITNESS_QUEUE_LIMIT=1000
 SPURLINE_WITNESS_MAX_DELAY_SECONDS=60
 ```
@@ -26,7 +34,7 @@ not an individual file: the monitor must replace the file atomically. The monito
 must measure the same host clock used by Spurline. Keep one application worker
 per instance; multi-process live subscription delivery is not supported.
 
-## Clock monitor contract
+## Bounded clock monitor contract
 
 Supply a trusted host time-monitor adapter which atomically writes this JSON:
 
@@ -34,8 +42,9 @@ Supply a trusted host time-monitor adapter which atomically writes this JSON:
 {"synchronized":true,"checked_at_ms":1793443200000,"uncertainty_ms":100}
 ```
 
-The timestamp above is illustrative, not a usable health file. No automatic NTP
-adapter is bundled. Do not periodically write `synchronized: true` without
+The timestamp above is illustrative, not a usable health file. No bounded-accuracy
+adapter is bundled; the bundled timesyncd adapter is operational-only and must
+not be used to assert a numeric bound. Do not periodically write `synchronized: true` without
 checking a real synchronization source and deriving a conservative uncertainty.
 The adapter must declare a bound that covers the host clock throughout the
 30-second freshness window, including holdover drift. Operators must ensure

@@ -1,0 +1,10 @@
+# Optional overlay: activate explicitly after installing the host monitor.
+services:
+  spurline:
+    volumes:
+      - type: bind
+        source: /run/spurline-clock
+        target: /run/spurline-clock
+        read_only: true
+        bind:
+          create_host_path: false

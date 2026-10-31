@@ -20,10 +20,13 @@ class Settings:
     service_management: str = "independent"
     witness_enabled: bool = False
     witness_clock_file: Path | None = None
+    witness_clock_mode: str = "bounded"
     witness_queue_limit: int = 1000
     witness_max_delay_seconds: int = 60
 
     def __post_init__(self) -> None:
+        if self.witness_clock_mode not in {"bounded", "operational"}:
+            raise ValueError("SPURLINE_WITNESS_CLOCK_MODE must be bounded or operational")
         if self.witness_enabled and (not self.service_nsec or not self.witness_clock_file):
             raise ValueError("witnessing requires a service key and SPURLINE_WITNESS_CLOCK_FILE")
         if self.witness_queue_limit < 1 or self.witness_max_delay_seconds < 1:
@@ -47,6 +50,7 @@ class Settings:
     def from_env(cls) -> Settings:
         return cls(
             witness_enabled=_env_bool("SPURLINE_WITNESS_ENABLED", default=False),
+            witness_clock_mode=os.getenv("SPURLINE_WITNESS_CLOCK_MODE", "bounded"),
             witness_clock_file=Path(os.environ["SPURLINE_WITNESS_CLOCK_FILE"]) if os.getenv("SPURLINE_WITNESS_CLOCK_FILE") else None,
             witness_queue_limit=int(os.getenv("SPURLINE_WITNESS_QUEUE_LIMIT", "1000")),
             witness_max_delay_seconds=int(os.getenv("SPURLINE_WITNESS_MAX_DELAY_SECONDS", "60")),

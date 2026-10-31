@@ -2,6 +2,9 @@
 
 Frozen experimental wire profile, 31 October 2026. **Kind 1418** is selected
 locally for receipts; it is not an assigned NIP or a registry reservation.
+Version 1 always requires numeric uncertainty; it is unchanged by the separate
+[operational version 2 profile](observation-receipt-v2.md), which explicitly asserts
+no numeric accuracy bound.
 Automatic local issuance is opt-in; see [operation](automatic-witness-operation.md).
 `spurline.receipts.verify_receipt`
 implements wire, signature, and subject-binding checks only, not witness trust.

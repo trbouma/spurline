@@ -1,4 +1,4 @@
-"""Experimental observation receipt v1 wire checks, not witness trust evaluation.
+"""Experimental observation receipt wire checks, not witness trust evaluation.
 
 Signing and automatic issuance are implemented separately in automatic_witness.
 """
@@ -29,9 +29,11 @@ def signed_event_digest(subject):
     return hashlib.sha256(DOMAIN + bytes.fromhex(subject["id"]) + bytes.fromhex(subject["sig"])).hexdigest()
 
 
-def receipt_tags(subject):
+def receipt_tags(subject, version=1):
+    if type(version) is not int or version not in (1, 2):
+        raise CommissioningError("unsupported receipt version")
     return [["e", subject["id"]], ["p", subject["pubkey"]],
-            ["k", str(subject["kind"])], ["t", RECEIPT_MARKER]]
+            ["k", str(subject["kind"])], ["t", f"spurline-observation-receipt-v{version}"]]
 
 
 def verify_receipt(receipt, subject):
@@ -53,18 +55,33 @@ def verify_receipt(receipt, subject):
     fields = {"schema", "schema_version", "subject_profile", "event_id", "signed_event_digest",
               "observed_at_ms", "issued_at_ms", "clock_uncertainty_ms", "validation",
               "observation_mode", "witness_policy_digest", "authorization_event_id"}
-    if not isinstance(body, dict) or set(body) != fields or canonical_json(body) != receipt["content"]:
-        raise CommissioningError("receipt fields or canonical encoding do not match v1")
+    if not isinstance(body, dict):
+        raise CommissioningError("receipt body must be an object")
+    version = body.get("schema_version")
+    if type(version) is not int or version not in (1, 2):
+        raise CommissioningError("unsupported receipt version")
+    if version == 2:
+        fields |= {"clock_accuracy", "clock_basis"}
+    if set(body) != fields or canonical_json(body) != receipt["content"]:
+        raise CommissioningError("receipt fields or canonical encoding do not match profile")
     if (body["schema"] != RECEIPT_SCHEMA or type(body["schema_version"]) is not int
-            or body["schema_version"] != 1 or body["subject_profile"] != SUBJECT_PROFILE
+            or body["subject_profile"] != SUBJECT_PROFILE
             or body["validation"] != "event-id-and-signature"
             or body["observation_mode"] not in ("live", "backfill")):
         raise CommissioningError("unsupported receipt profile")
-    for name in ("observed_at_ms", "issued_at_ms", "clock_uncertainty_ms"):
+    for name in ("observed_at_ms", "issued_at_ms"):
         if type(body[name]) is not int or not 0 <= body[name] <= MAX_SAFE_INTEGER:
             raise CommissioningError("receipt times must be nonnegative safe integers")
+    uncertainty = body['clock_uncertainty_ms']
+    if version == 1:
+        if type(uncertainty) is not int or not 0 <= uncertainty <= MAX_SAFE_INTEGER:
+            raise CommissioningError("v1 requires a numeric clock uncertainty")
+        if body['observed_at_ms'] + uncertainty > MAX_SAFE_INTEGER:
+            raise CommissioningError("inconsistent receipt times")
+    elif (uncertainty is not None or body['clock_accuracy'] != 'unspecified'
+          or body['clock_basis'] != 'ntp-synchronized-system-clock'):
+        raise CommissioningError("v2 requires explicit unspecified clock accuracy")
     if (body["observed_at_ms"] > body["issued_at_ms"]
-            or body["observed_at_ms"] + body["clock_uncertainty_ms"] > MAX_SAFE_INTEGER
             or not isinstance(receipt["created_at"], int) or isinstance(receipt["created_at"], bool)
             or receipt["created_at"] != body["issued_at_ms"] // 1000):
         raise CommissioningError("inconsistent receipt times")
@@ -73,6 +90,6 @@ def verify_receipt(receipt, subject):
         if not isinstance(value, str) or len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
             raise CommissioningError("invalid receipt evidence reference")
     if (body["event_id"] != subject["id"] or body["signed_event_digest"] != digest
-            or receipt["tags"] != receipt_tags(subject)):
+            or receipt["tags"] != receipt_tags(subject, version)):
         raise CommissioningError("receipt does not bind this exact signed subject")
     return body

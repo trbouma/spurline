@@ -1,0 +1,20 @@
+[Unit]
+Description=Spurline operational clock health monitor
+After=systemd-timesyncd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/spurline-clock-monitor.py --output /run/spurline-clock/health.json
+DynamicUser=yes
+RuntimeDirectory=spurline-clock
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+TimeoutStartSec=15
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
