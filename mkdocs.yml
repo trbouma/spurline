@@ -44,6 +44,7 @@ nav:
   - Operate Spurline:
       - Service Commissioning: service-commissioning.md
       - Witness Operator Runbook: witness-operator-runbook.md
+      - Operator Signing CLI: operator-signing.md
       - Automatic Witness Operation: automatic-witness-operation.md
       - Witness Authorization Lifecycle: witness-lifecycle.md
       - Getting Started: getting-started.md

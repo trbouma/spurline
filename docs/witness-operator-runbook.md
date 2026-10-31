@@ -66,6 +66,9 @@ relationship, then signs the attestation described in the
 [commissioning format](service-commissioning.md#operator-attestation-format).
 Creating the request does not sign on the operator's behalf.
 
+Use the offline [Operator Signing CLI](operator-signing.md) to validate and sign
+the request on an operator workstation with a hidden private-key prompt.
+
 Import the returned event and verify the chain:
 
 ```bash
@@ -119,6 +122,9 @@ sign a template merely because the relay supplied it. Follow the
 [witness signing instructions](service-commissioning.md#authorize-the-observation-witness-role),
 including consistent `created_at` and content `issued_at` values. The operator
 returns a signed event, never its private key.
+
+The [Operator Signing CLI](operator-signing.md#sign-an-initial-witness-authorization)
+supports initial witness grants with commissioning-chain and exact-policy verification.
 
 ## Import and publish authorization
 

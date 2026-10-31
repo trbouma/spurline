@@ -37,6 +37,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Externally visible ws:// or wss:// relay URL.",
     )
     commands = parser.add_subparsers(dest="command")
+    operator = commands.add_parser("operator", help="Offline signing with an external operator key.")
+    signing = operator.add_subparsers(dest="operator_action", required=True)
+    for name in ("sign-commissioning", "sign-witness"):
+        command = signing.add_parser(name, help="Validate, review and sign using a hidden private-key prompt.")
+        command.add_argument("--file", type=Path, required=True, help="Signed request JSON or request-command output.")
+        command.add_argument("--service-npub", required=True, help="Independently confirmed service npub or hex pubkey.")
+        if name == "sign-witness":
+            command.add_argument("--commissioning-file", type=Path, required=True, help="Complete service show evidence JSON.")
+            command.add_argument("--policy", type=Path, required=True, help="Exact UTF-8 approved policy bytes.")
     service = commands.add_parser("service", help="Locally administer service commissioning.")
     actions = service.add_subparsers(dest="action", required=True)
     request = actions.add_parser("request", help="Sign a request to the specified operator.")
@@ -129,6 +138,14 @@ def witness_command(args, settings):
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    if args.command == "operator":
+        from .operator_signing import sign
+        try:
+            result = sign(args)
+        except (CommissioningError, OSError, ValueError, EOFError, KeyboardInterrupt) as exc:
+            parser.exit(1, f"Error: {exc or 'signing cancelled'}\n")
+        print(json.dumps(result, indent=2))
+        return
     settings = Settings.from_env()
     overrides = {key: value for key, value in {
         "host": args.host, "port": args.port, "database_path": args.database,
