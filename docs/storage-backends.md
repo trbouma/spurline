@@ -44,5 +44,7 @@ Multiple relay processes also need shared event notifications. The current
 broadcast mechanism only reaches clients in the process that receives an event;
 shared PostgreSQL storage alone does not provide cross-process delivery. Design
 notification delivery, duplicate handling, and reconnect recovery alongside that
-deployment model. Service identity binding also currently uses local SQLite state
-and will need an explicit shared-state design before multi-instance deployment.
+deployment model. Service identity binding uses a local sentinel file, and
+commissioning evidence uses a separate local SQLite administrative database.
+Both need an explicit shared-state design before multi-instance deployment.
+See [Service commissioning](service-commissioning.md) for backup requirements.

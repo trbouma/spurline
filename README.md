@@ -55,6 +55,24 @@ relay a persistent Nostr service identity. Spurline publishes only the derived
 bound to the relay data directory and the same private key is required on later
 starts.
 
+Clear-style reciprocal service commissioning is available through
+`spurline service request`, `commission`, `show`, `verify`, and `publish`.
+Commands use the configured service identity and local data directory; the
+operator key stays outside Spurline. Public evidence is available at
+`/v1/service-identity`. See [Service commissioning](docs/service-commissioning.md)
+for the exchange, container commands, and trust boundaries.
+
+The separate `spurline service witness` commands request, import, verify, and
+publish operator authorization for witnessing OpenETR kinds 1415 and 1416 under
+a specific public policy and validity period. Authorization is implemented;
+automatic local receipt issuance is opt-in. See
+[Automatic Witness Operation](docs/automatic-witness-operation.md) for setup,
+clock-monitor requirements, recovery and receipt discovery.
+
+Witness lifecycle commands now include `renew`, `revocation-request`, `revoke`,
+`suspend`, `resume`, and `history`. See the [lifecycle guide](docs/witness-lifecycle.md)
+and frozen [experimental receipt profile](docs/observation-receipt-v1.md), kind 1418.
+
 ## Test
 
 ```bash

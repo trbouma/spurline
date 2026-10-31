@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,9 @@ from .events import EventValidationError, StoredEvent, validate_event
 from .filters import FilterValidationError, matches_any_filter, normalize_filters
 from .homepage import render_homepage
 from .identity import bind_service_identity
+from .service import ServiceCommissioning
+from .witness import WitnessAuthorization
+from .automatic_witness import AutomaticWitness
 from .storage import EventStorage, SQLiteStorage, StorageError
 
 logger = logging.getLogger(__name__)
@@ -28,6 +32,7 @@ class RelayService:
     def __init__(self, store: EventStorage, *, verify_signatures: bool = True) -> None:
         self.store = store
         self.verify_signatures = verify_signatures
+        self.witness = None
         self.connections: dict[WebSocket, SubscriptionMap] = {}
 
     async def connect(self, websocket: WebSocket) -> None:
@@ -73,8 +78,9 @@ class RelayService:
             return
 
         try:
-            inserted = await self.store.save(event)
-        except StorageError:
+            inserted = (await asyncio.to_thread(self.witness.accept, event)
+                        if self.witness else await self.store.save(event))
+        except (StorageError, sqlite3.Error, OverflowError):
             logger.exception("Event storage failed")
             await websocket.send_json(["OK", event.id, False, "error: storage could not confirm publication"])
             return
@@ -130,15 +136,27 @@ def create_app(settings: Settings | None = None, *, store: EventStorage | None =
     configured = settings or Settings.from_env()
     store = store if store is not None else SQLiteStorage(configured.database_path)
     relay = RelayService(store, verify_signatures=configured.verify_signatures)
+    if configured.witness_enabled:
+        if not isinstance(store, SQLiteStorage):
+            raise ValueError("automatic witnessing currently requires SQLiteStorage")
+        relay.witness = AutomaticWitness(configured, store._store)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        worker = None
         try:
             bind_service_identity(
                 configured.database_path, npub=configured.service_npub
             )
+            await asyncio.to_thread(ServiceCommissioning(configured).show)
+            await asyncio.to_thread(WitnessAuthorization(configured).show)
+            if relay.witness:
+                worker = asyncio.create_task(relay.witness.run(relay.broadcast))
             yield
         finally:
+            if worker:
+                relay.witness.stopping.set()
+                await worker
             await app.state.store.close()
 
     app = FastAPI(
@@ -168,8 +186,8 @@ def create_app(settings: Settings | None = None, *, store: EventStorage | None =
 
     @app.get("/", response_model=None)
     async def root(request: Request):
+        info = await asyncio.to_thread(relay_info, configured)
         if "text/html" in request.headers.get("accept", "").lower():
-            info = relay_info(configured)
             identity = info["service_identity"]
             return HTMLResponse(
                 render_homepage(
@@ -185,7 +203,7 @@ def create_app(settings: Settings | None = None, *, store: EventStorage | None =
                     service_state=identity["state"],
                 )
             )
-        return relay_info(configured)
+        return info
 
     @app.get("/health")
     async def health():
@@ -201,11 +219,30 @@ def create_app(settings: Settings | None = None, *, store: EventStorage | None =
 
     @app.get("/info")
     async def info():
-        return relay_info(configured)
+        return await asyncio.to_thread(relay_info, configured)
+
+    @app.get("/v1/service-identity")
+    async def service_identity():
+        status = await asyncio.to_thread(ServiceCommissioning(configured).show)
+        info = await asyncio.to_thread(relay_info, configured, status=status)
+        return {"service_identity": info["service_identity"], "evidence": status["evidence"]}
+
+    @app.get("/v1/witness-authorization")
+    async def witness_authorization():
+        status = await asyncio.to_thread(WitnessAuthorization(configured).show)
+        return {key: value for key, value in status.items() if key != "local_controls"}
+
+    @app.get("/v1/witness-status/{digest}")
+    async def witness_status(digest: str):
+        if len(digest) != 64 or any(ch not in '0123456789abcdef' for ch in digest):
+            return {"state": "invalid-digest"}
+        if not relay.witness:
+            return {"state": "disabled", "receipt_event_id": None}
+        return await asyncio.to_thread(relay.witness.status, digest)
 
     @app.get("/.well-known/nostr.json")
     async def well_known_info():
-        return relay_info(configured)
+        return await asyncio.to_thread(relay_info, configured)
 
     @app.websocket("/")
     async def nostr_relay(websocket: WebSocket):
@@ -222,20 +259,29 @@ def create_app(settings: Settings | None = None, *, store: EventStorage | None =
     return app
 
 
-def relay_info(settings: Settings) -> dict[str, Any]:
+def relay_info(settings: Settings, *, status: dict[str, Any] | None = None) -> dict[str, Any]:
+    if status is None:
+        status = ServiceCommissioning(settings).show()
+    witness = WitnessAuthorization(settings).show()
     return {
         "name": "Spurline",
         "description": "A local-first relay for individuals and communities.",
         "software": "spurline",
         "version": __version__,
+        "automatic_witness": {"configured": settings.witness_enabled,
+                              "publication": "local", "receipt_kind": 1418,
+                              "status_url": "/v1/witness-status/{signed_event_digest}",
+                              "clock_health_required": True},
+        "witness_authorization": {key: value for key, value in witness.items()
+                                  if key not in {"evidence", "history", "pending", "pending_status", "local_controls"}},
         "service_identity": {
             "npub": settings.service_npub,
             "fips_ipv6_address": settings.service_fips_ipv6_address,
             "type": "nostr-relay",
             "management": settings.service_management,
-            "state": "uncommissioned" if settings.service_npub else "unconfigured",
-            "descriptor_event_id": None,
-            "operator": None,
+            "state": status["state"],
+            "descriptor_event_id": status.get("service_descriptor_event_id"),
+            "operator": status.get("operator_npub"),
         },
         "supported_nips": [1],
         "contact": "",

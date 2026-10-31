@@ -25,8 +25,13 @@ class EventStore:
         with self.lock:
             self.connection.close()
 
-    def save(self, event: StoredEvent) -> bool:
+    def save(self, event: StoredEvent, *, witness_job=None, queue_limit=1000, completed=None) -> bool:
         with self.lock, self.connection:
+            if witness_job is not None:
+                pending = self.connection.execute("SELECT count(*) FROM witness_jobs WHERE state='pending'").fetchone()[0]
+                state = 'pending' if pending < queue_limit else 'unavailable'
+                self.connection.execute("INSERT OR IGNORE INTO witness_jobs(digest, inputs, state) VALUES (?, ?, ?)",
+                                        (witness_job['signed_event_digest'], json.dumps(witness_job), state))
             cursor = self.connection.execute(
                 """
                 INSERT OR IGNORE INTO events
@@ -48,8 +53,26 @@ class EventStore:
                 self._index_tags(event.id, event.tags)
             if event.kind == 5:
                 self._record_deletions(event)
+            if completed is not None:
+                self.connection.execute("UPDATE witness_jobs SET state='issued', receipt=?, broadcast=0 WHERE digest=? AND state='pending'",
+                                        (json.dumps(event.to_dict()), completed))
             self.connection.commit()
             return cursor.rowcount > 0
+
+    def witness_rows(self, digest=None):
+        with self.lock:
+            if digest is not None:
+                rows = self.connection.execute("SELECT * FROM witness_jobs WHERE digest=?", (digest,)).fetchall()
+            else:
+                rows = self.connection.execute("SELECT * FROM witness_jobs WHERE state='pending' OR (state='issued' AND broadcast=0) ORDER BY rowid LIMIT 32").fetchall()
+            return [dict(row) for row in rows]
+
+    def witness_update(self, digest, *, unavailable=False):
+        with self.lock, self.connection:
+            if unavailable:
+                self.connection.execute("UPDATE witness_jobs SET state='unavailable' WHERE digest=? AND state='pending'", (digest,))
+            else:
+                self.connection.execute("UPDATE witness_jobs SET broadcast=1 WHERE digest=? AND state='issued'", (digest,))
 
     def query(self, filters: list[dict[str, Any]]) -> list[StoredEvent]:
         validate_filter_bounds(filters)
@@ -117,6 +140,12 @@ class EventStore:
                   sig TEXT NOT NULL,
                   raw_json TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS witness_jobs (
+                  digest TEXT PRIMARY KEY, inputs TEXT NOT NULL,
+                  state TEXT NOT NULL, receipt TEXT, broadcast INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS witness_jobs_state ON witness_jobs(state, broadcast);
 
                 CREATE INDEX IF NOT EXISTS idx_events_created_at ON events (created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_events_pubkey ON events (pubkey);

@@ -1,0 +1,38 @@
+{
+  "description": "Cryptographic wire fixture only; subject is not a qualifying OpenETR anchor and authority references are placeholders.",
+  "subject": {
+    "id": "d827e79e3eb7cd9a5539c570c070b151c6e68a02a1364708f2f4aec7d6f3bc2f",
+    "pubkey": "4f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+    "created_at": 1700000000,
+    "kind": 1415,
+    "tags": [],
+    "content": "fixture anchor",
+    "sig": "0cfc151e5cbf15639e8d9b0cc991eb7cc390ba92dd983d257b99b14239e93a705b319e21f9da438b50d0752e927ea19cd2053e43cb267b1c717f89adbef67ad4"
+  },
+  "receipt": {
+    "id": "b2f682638de1597901fb5609004055571ce1e536196e9e26ca89bcdd921a7b9c",
+    "pubkey": "466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27",
+    "created_at": 1700000002,
+    "kind": 1418,
+    "tags": [
+      [
+        "e",
+        "d827e79e3eb7cd9a5539c570c070b151c6e68a02a1364708f2f4aec7d6f3bc2f"
+      ],
+      [
+        "p",
+        "4f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"
+      ],
+      [
+        "k",
+        "1415"
+      ],
+      [
+        "t",
+        "spurline-observation-receipt-v1"
+      ]
+    ],
+    "content": "{\"authorization_event_id\":\"4444444444444444444444444444444444444444444444444444444444444444\",\"clock_uncertainty_ms\":1000,\"event_id\":\"d827e79e3eb7cd9a5539c570c070b151c6e68a02a1364708f2f4aec7d6f3bc2f\",\"issued_at_ms\":1700000002000,\"observation_mode\":\"live\",\"observed_at_ms\":1700000001000,\"schema\":\"org.spurline.observation-receipt\",\"schema_version\":1,\"signed_event_digest\":\"bddff50d3fb8b36346a1804c7cf5447b85d1d04d8fb6e25f47dc0ca99415362a\",\"subject_profile\":\"nostr-schnorr-secp256k1-v1\",\"validation\":\"event-id-and-signature\",\"witness_policy_digest\":\"3333333333333333333333333333333333333333333333333333333333333333\"}",
+    "sig": "cbc4519820a829c0841d4974b7211401d6fa9f5828f154e86823e65b27752b64651078f2bc83fbf51809a001914ba482497044b06b8a01b79578ada66fa15cef"
+  }
+}

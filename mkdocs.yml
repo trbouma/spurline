@@ -38,7 +38,14 @@ nav:
       - Selective Relay Synchronization: selective-relay-synchronization.md
       - Optional Post Quantum Anchors: post-quantum-anchor-events.md
       - Append Only Evidence Policy: append-only-evidence-policy.md
+      - Automatic Observation Receipts: automatic-observation-receipts.md
+      - Observation Receipt Profile v1: observation-receipt-v1.md
+      - Finding OpenETR Witness Records: openetr-witness-records.md
   - Operate Spurline:
+      - Service Commissioning: service-commissioning.md
+      - Witness Operator Runbook: witness-operator-runbook.md
+      - Automatic Witness Operation: automatic-witness-operation.md
+      - Witness Authorization Lifecycle: witness-lifecycle.md
       - Getting Started: getting-started.md
       - Container Deployment: container-deployment.md
       - Relay API: relay-api.md
